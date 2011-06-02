@@ -5,6 +5,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.List;
 
+//TODO figure out how to forward calls to a failed rmi registry dynamically to another registry
 public class ReplicatedServer implements IServer {
 
     public ReplicatedServer() {
