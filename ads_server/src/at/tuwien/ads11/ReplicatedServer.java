@@ -6,6 +6,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 
+import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 
@@ -13,18 +14,18 @@ import at.tuwien.ads11.remote.IServer;
 public class ReplicatedServer implements IServer {
 
     public ReplicatedServer() {
-        
+
     }
-    
+
     public static void main(String args[]) {
         startRMIRegistry();
     }
-    
+
     @Override
     public boolean register(String name, String pass) throws RemoteException {
         // TODO Auto-generated method stub
-        System.out.println("You are registered");
-        return false;
+        System.out.println("REMOTE CALL: Registering client with: " + name + " " + pass);
+        return true;
     }
 
     @Override
@@ -68,32 +69,31 @@ public class ReplicatedServer implements IServer {
         // TODO Auto-generated method stub
         return false;
     }
-    
-    //========= private ===========
-    
+
+    // ========= private ===========
+
     private void init() {
         // connect to the spread deamon
         // check if this is the first server in the group
         // if yes create the proxy and bind it to a registry...
         // if no get the proxy, add this server to it and rebind it...
     }
-    
+
     private static void startRMIRegistry() {
-//        if (System.getSecurityManager() == null) {
-//            System.setSecurityManager(new SecurityManager());
-//        }
-        
+        // if (System.getSecurityManager() == null) {
+        // System.setSecurityManager(new SecurityManager());
+        // }
+
         try {
-            String name = "Server";
             IServer server = new ReplicatedServer();
-            IServer stub =
-                (IServer) UnicastRemoteObject.exportObject(server, 0);
+            IServer stub = (IServer) UnicastRemoteObject.exportObject(server, 0);
             Registry registry = LocateRegistry.createRegistry(1099);
-            registry.rebind(name, stub);
-            System.out.println("Server bound");    
-            
+            registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
+            System.out.println("Server bound");
+
         } catch (RemoteException e) {
             e.printStackTrace();
         }
+
     }
 }
