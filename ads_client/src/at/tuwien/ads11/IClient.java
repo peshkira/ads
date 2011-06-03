@@ -4,6 +4,9 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
+import at.tuwien.ads11.remote.Game;
+import at.tuwien.ads11.remote.Movement;
+
 public interface IClient extends Remote {
 
     /**

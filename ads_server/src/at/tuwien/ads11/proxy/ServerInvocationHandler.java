@@ -4,7 +4,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.List;
 
-import at.tuwien.ads11.IServer;
+import at.tuwien.ads11.remote.IServer;
 
 public class ServerInvocationHandler implements InvocationHandler {
     

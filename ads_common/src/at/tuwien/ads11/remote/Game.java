@@ -1,4 +1,4 @@
-package at.tuwien.ads11;
+package at.tuwien.ads11.remote;
 
 import java.io.Serializable;
 

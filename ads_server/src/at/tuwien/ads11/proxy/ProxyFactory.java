@@ -4,7 +4,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 
-import at.tuwien.ads11.IServer;
+import at.tuwien.ads11.remote.IServer;
 
 public class ProxyFactory {
 
