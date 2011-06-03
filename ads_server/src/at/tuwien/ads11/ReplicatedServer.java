@@ -13,12 +13,30 @@ import at.tuwien.ads11.remote.IServer;
 //TODO figure out how to forward calls to a failed rmi registry dynamically to another registry
 public class ReplicatedServer implements IServer {
 
+    private Registry registry;
+
     public ReplicatedServer() {
+        try {
+            IServer stub = (IServer) UnicastRemoteObject.exportObject(this, 0);
+            this.registry = LocateRegistry.createRegistry(1099);
+            this.registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
+            System.out.println("Server bound");
+
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
 
     }
 
     public static void main(String args[]) {
-        startRMIRegistry();
+        try {
+            ReplicatedServer server = new ReplicatedServer();
+            Thread console = new Thread(new ServerConsole(server));
+            console.start();
+            console.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -69,6 +87,11 @@ public class ReplicatedServer implements IServer {
         // TODO Auto-generated method stub
         return false;
     }
+    
+    protected void shutdown() {
+      //TODO
+        
+    }
 
     // ========= private ===========
 
@@ -79,21 +102,11 @@ public class ReplicatedServer implements IServer {
         // if no get the proxy, add this server to it and rebind it...
     }
 
-    private static void startRMIRegistry() {
+    private void startRMIRegistry() {
         // if (System.getSecurityManager() == null) {
         // System.setSecurityManager(new SecurityManager());
         // }
 
-        try {
-            IServer server = new ReplicatedServer();
-            IServer stub = (IServer) UnicastRemoteObject.exportObject(server, 0);
-            Registry registry = LocateRegistry.createRegistry(1099);
-            registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
-            System.out.println("Server bound");
-
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-
+        
     }
 }
