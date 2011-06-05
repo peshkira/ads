@@ -16,8 +16,15 @@ public class ServerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method m, Object[] args) throws Throwable {
-        // TODO Auto-generated method stub
-        return null;
+        System.out.println("invoking: " + m.getName());
+        
+        //todo get one server nondeterministically...
+        // wait for response..
+        // if exception... try another...
+        // until all tried..
+        // if no server is reachable ..
+        // throw RemoteException...
+        return m.invoke(servers.get(0), args);
     }
 
 }

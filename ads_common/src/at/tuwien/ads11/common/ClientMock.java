@@ -1,38 +1,14 @@
-package at.tuwien.ads11.remote;
+package at.tuwien.ads11.common;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+public class ClientMock {
 
-import at.tuwien.ads11.common.ClientMock;
-
-
-public class Game implements Serializable {
-    //  will contain game related info:
-    // players with their ids and eventually credentials
-    // name of the game
-    
     private String name;
-    
-    private String host;
     
     private String pass;
     
-    private List<ClientMock> players;
-    
-    public Game(String name, String host, String pass) {
+    public ClientMock(String name, String pass) {
         this.setName(name);
-        this.setHost(host);
         this.setPass(pass);
-        this.setPlayers(new ArrayList<ClientMock>());
-    }
-
-    public void setPlayers(List<ClientMock> players) {
-        this.players = players;
-    }
-
-    public List<ClientMock> getPlayers() {
-        return players;
     }
 
     public void setName(String name) {
@@ -43,27 +19,14 @@ public class Game implements Serializable {
         return name;
     }
 
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
     public void setPass(String pass) {
         this.pass = pass;
     }
-
-    public String getPass() {
-        return pass;
-    }
-
+    
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((host == null) ? 0 : host.hashCode());
         result = prime * result + ((name == null) ? 0 : name.hashCode());
         result = prime * result + ((pass == null) ? 0 : pass.hashCode());
         return result;
@@ -77,12 +40,7 @@ public class Game implements Serializable {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        Game other = (Game) obj;
-        if (host == null) {
-            if (other.host != null)
-                return false;
-        } else if (!host.equals(other.host))
-            return false;
+        ClientMock other = (ClientMock) obj;
         if (name == null) {
             if (other.name != null)
                 return false;
@@ -94,5 +52,9 @@ public class Game implements Serializable {
         } else if (!pass.equals(other.pass))
             return false;
         return true;
+    }
+
+    public String getPass() {
+        return pass;
     }
 }

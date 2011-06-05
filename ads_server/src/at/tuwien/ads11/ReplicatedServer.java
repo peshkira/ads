@@ -1,12 +1,18 @@
 package at.tuwien.ads11;
 
+import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
+import at.tuwien.ads11.proxy.ProxyFactory;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 
@@ -14,60 +20,61 @@ import at.tuwien.ads11.remote.IServer;
 public class ReplicatedServer implements IServer {
 
     private Registry registry;
+    
+    private List<Game> games;
+    
+    private Set<ClientMock> clients;
 
-    public ReplicatedServer() {
-        try {
-            IServer stub = (IServer) UnicastRemoteObject.exportObject(this, 0);
-            this.registry = LocateRegistry.createRegistry(1099);
-            this.registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
-            System.out.println("Server bound");
+    private IServer proxy;
 
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-
+    public ReplicatedServer(int port) {
+       this.startRMIRegistry(port);
+       this.games = new ArrayList<Game>();
+       this.clients = new HashSet<ClientMock>();
+       
     }
 
     public static void main(String args[]) {
-        try {
-            ReplicatedServer server = new ReplicatedServer();
-            Thread console = new Thread(new ServerConsole(server));
-            console.start();
-            console.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+
+        if (args == null || args.length != 1) {
+            System.exit(1);
         }
+
+        int port = Integer.parseInt(args[0]);
+        ReplicatedServer server = new ReplicatedServer(port);
+        Thread console = new Thread(new ServerConsole(server));
+        console.start();
+
     }
 
     @Override
     public boolean register(String name, String pass) throws RemoteException {
-        // TODO Auto-generated method stub
-        System.out.println("REMOTE CALL: Registering client with: " + name + " " + pass);
-        return true;
+        ClientMock client = new ClientMock(name, pass);
+        boolean add = this.clients.add(client);
+        return add;
     }
 
     @Override
     public boolean unregister(String name, String pass) throws RemoteException {
-        // TODO Auto-generated method stub
-        return false;
+        ClientMock mock = new ClientMock(name, pass);
+        return this.clients.remove(mock);
     }
 
     @Override
     public List<Game> fetchGames() throws RemoteException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.games;
     }
 
     @Override
     public boolean createGame(String game, String name, String pass) throws RemoteException {
-        // TODO Auto-generated method stub
-        return false;
+        Game g = new Game(game, name, pass);
+        return this.games.add(g);
     }
 
     @Override
     public boolean cancelGame(String game, String name, String pass) throws RemoteException {
-        // TODO Auto-generated method stub
-        return false;
+        Game g = new Game(game, name, pass);
+        return this.games.remove(g);
     }
 
     @Override
@@ -78,7 +85,7 @@ public class ReplicatedServer implements IServer {
 
     @Override
     public boolean joinGame(String game, String name, String pass) throws RemoteException {
-        // TODO Auto-generated method stub
+        
         return false;
     }
 
@@ -87,10 +94,16 @@ public class ReplicatedServer implements IServer {
         // TODO Auto-generated method stub
         return false;
     }
-    
+
     protected void shutdown() {
-      //TODO
-        
+        try {
+            UnicastRemoteObject.unexportObject(this.proxy, true);
+            UnicastRemoteObject.unexportObject(this.registry, true);
+            
+        } catch (NoSuchObjectException e) {
+            e.printStackTrace();
+        }
+
     }
 
     // ========= private ===========
@@ -102,11 +115,23 @@ public class ReplicatedServer implements IServer {
         // if no get the proxy, add this server to it and rebind it...
     }
 
-    private void startRMIRegistry() {
+    private void startRMIRegistry(int port) {
         // if (System.getSecurityManager() == null) {
         // System.setSecurityManager(new SecurityManager());
         // }
-
         
+        try {
+
+            this.registry = LocateRegistry.createRegistry(port);
+
+            this.proxy = ProxyFactory.createServerProxy(this);
+            IServer stub = (IServer) UnicastRemoteObject.exportObject(proxy, 0);
+            this.registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
+
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
     }
+    
 }
