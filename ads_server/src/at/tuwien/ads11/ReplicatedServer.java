@@ -29,9 +29,11 @@ import at.tuwien.ads11.remote.IServer;
 public class ReplicatedServer implements IServer {
 
     private Registry registry;
-    
+
     private List<Game> games;
     
+    private List<Game> playing;
+
     private Set<ClientMock> clients;
 
     private IServer proxy;
@@ -54,7 +56,7 @@ public class ReplicatedServer implements IServer {
     	this.daemonIP = props.getProperty("daemonIP");
     	this.games = new ArrayList<Game>();
     	this.clients = new HashSet<ClientMock>();
-       
+    	this.playing = new ArrayList<Game>();
     }
 
     public static void main(String args[]) {
@@ -78,12 +80,21 @@ public class ReplicatedServer implements IServer {
 		
 				
         ReplicatedServer server = new ReplicatedServer(props);
-        server.start();
         Thread console = new Thread(new ServerConsole(server));
+
+        server.start();
         console.start();
 
     }
 
+    /**
+     * Wraps the info into a client mock object and adds it to the set. If the
+     * client is already register it doesn't matter as it won't be added again
+     * the the set. ClientMock equals will return true...
+     * 
+     * If however the pass is different, than the client will be considered as a
+     * new one.
+     */
     @Override
     public boolean register(String name, String pass) throws RemoteException {
         ClientMock client = new ClientMock(name, pass);
@@ -91,15 +102,22 @@ public class ReplicatedServer implements IServer {
         return add;
     }
 
+    /**
+     * Works the same way as the register. If the Client is not registered, than the method
+     * will just return false.
+     */
     @Override
     public boolean unregister(String name, String pass) throws RemoteException {
         ClientMock mock = new ClientMock(name, pass);
         return this.clients.remove(mock);
     }
 
+    /**
+     * Returns the current list of games that are not started yet.
+     */
     @Override
     public List<Game> fetchGames() throws RemoteException {
-        return this.games;
+        return this.anonymizeGames();
     }
 
     @Override
@@ -116,12 +134,25 @@ public class ReplicatedServer implements IServer {
 
     @Override
     public Game startGame(String game, String name, String pass) throws RemoteException {
-        // TODO Auto-generated method stub
-        return null;
+        Game g = new Game(game, name, pass);
+        
+        for (Game tmp : this.games) {
+            if (tmp.equals(g)) {
+                g = tmp;
+                break;
+            }
+        }
+        
+        this.games.remove(g);
+        this.playing.add(g);
+        return g;
     }
 
     @Override
     public boolean joinGame(String game, String name, String pass) throws RemoteException {
+        Game g = new Game(game, name, pass);
+        
+       
         
         return false;
     }
@@ -138,7 +169,7 @@ public class ReplicatedServer implements IServer {
             rt.run = false;
         	UnicastRemoteObject.unexportObject(this.proxy, true);
             UnicastRemoteObject.unexportObject(this.registry, true);
-            
+
         } catch (NoSuchObjectException e) {
             e.printStackTrace();
         } catch (SpreadException e) {
@@ -184,7 +215,7 @@ public class ReplicatedServer implements IServer {
         // if (System.getSecurityManager() == null) {
         // System.setSecurityManager(new SecurityManager());
         // }
-        
+
         try {
 
             this.registry = LocateRegistry.createRegistry(port);
@@ -199,4 +230,15 @@ public class ReplicatedServer implements IServer {
 
     }
     
+    private List<Game> anonymizeGames() {
+        List<Game> anonymize = new ArrayList<Game>();
+        
+        for (Game g : this.games) {
+            Game tmp = new Game(g.getName(), g.getHost(), "");
+            tmp.setPlayers(g.getPlayers());
+        }
+        
+        return anonymize;
+    }
+
 }
