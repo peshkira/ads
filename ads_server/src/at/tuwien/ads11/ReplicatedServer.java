@@ -19,7 +19,6 @@ import java.util.Set;
 import spread.SpreadConnection;
 import spread.SpreadException;
 import spread.SpreadGroup;
-
 import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.proxy.ProxyFactory;
@@ -44,6 +43,9 @@ public class ReplicatedServer implements IServer {
     
     private SpreadConnection spreadCon;
     private SpreadGroup serverGroup;
+    
+    //TEST MSGS
+    recThread rt;
 
     public ReplicatedServer(Properties props) {
     	this.serverId = props.getProperty("serverId");
@@ -74,6 +76,7 @@ public class ReplicatedServer implements IServer {
 			System.exit(1);
 		}
 		
+				
         ReplicatedServer server = new ReplicatedServer(props);
         server.start();
         Thread console = new Thread(new ServerConsole(server));
@@ -132,6 +135,7 @@ public class ReplicatedServer implements IServer {
     protected void shutdown() {
         try {
             serverGroup.leave();
+            rt.run = false;
         	UnicastRemoteObject.unexportObject(this.proxy, true);
             UnicastRemoteObject.unexportObject(this.registry, true);
             
@@ -161,6 +165,9 @@ public class ReplicatedServer implements IServer {
     	
     	try {
 			spreadCon.connect(InetAddress.getByName(daemonIP), daemonPort, serverId, false, true);
+			// TEST MSGS
+			rt = new recThread(spreadCon);
+			rt.start();
 			serverGroup.join(spreadCon, Constants.SPREAD_SERVER_GROUP);
 		} catch (UnknownHostException e) {
 			System.err.println("Can not find daemon: " + daemonIP);
