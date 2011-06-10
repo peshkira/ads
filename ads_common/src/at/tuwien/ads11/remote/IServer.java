@@ -1,10 +1,11 @@
 package at.tuwien.ads11.remote;
 
+import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
-public interface IServer extends Remote {
+public interface IServer extends Remote, Serializable {
 
     /**
      * Registers to the server as a client.

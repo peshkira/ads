@@ -19,14 +19,18 @@ import java.util.Set;
 import spread.SpreadConnection;
 import spread.SpreadException;
 import spread.SpreadGroup;
+import spread.SpreadMessage;
 import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
+import at.tuwien.ads11.listener.MembershipMessageListener;
 import at.tuwien.ads11.proxy.ProxyFactory;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 
 //TODO figure out how to forward calls to a failed rmi registry dynamically to another registry
-public class ReplicatedServer implements IServer {
+public class ReplicatedServer implements IServer{
+
+    private static final long serialVersionUID = -8917839808656077153L;
 
     private Registry registry;
 
@@ -36,19 +40,16 @@ public class ReplicatedServer implements IServer {
 
     private Set<ClientMock> clients;
 
-    private IServer proxy;
+    private transient IServer proxy;
     
     private int rmiPort;
     private int daemonPort;
     private String daemonIP;
     private String serverId;
     
-    private SpreadConnection spreadCon;
-    private SpreadGroup serverGroup;
+    private transient SpreadConnection spreadCon;
+    private transient SpreadGroup serverGroup;
     
-    //TEST MSGS
-    recThread rt;
-
     public ReplicatedServer(Properties props) {
     	this.serverId = props.getProperty("serverId");
     	this.rmiPort = Integer.parseInt(props.getProperty("rmiPort"));
@@ -165,8 +166,8 @@ public class ReplicatedServer implements IServer {
 
     protected void shutdown() {
         try {
+            
             serverGroup.leave();
-            rt.run = false;
         	UnicastRemoteObject.unexportObject(this.proxy, true);
             UnicastRemoteObject.unexportObject(this.registry, true);
 
@@ -192,14 +193,14 @@ public class ReplicatedServer implements IServer {
     
     private void connectToSpread() {
     	spreadCon = new SpreadConnection();
+    	spreadCon.add(new MembershipMessageListener(this));
     	serverGroup = new SpreadGroup();
     	
+    	
     	try {
-			spreadCon.connect(InetAddress.getByName(daemonIP), daemonPort, serverId, false, true);
-			// TEST MSGS
-			rt = new recThread(spreadCon);
-			rt.start();
+			spreadCon.connect(InetAddress.getByName(daemonIP), daemonPort, getServerId(), false, true);
 			serverGroup.join(spreadCon, Constants.SPREAD_SERVER_GROUP);
+			//this.sendProxyReference(serverGroup);
 		} catch (UnknownHostException e) {
 			System.err.println("Can not find daemon: " + daemonIP);
 			e.printStackTrace();
@@ -217,17 +218,37 @@ public class ReplicatedServer implements IServer {
         // }
 
         try {
-
             this.registry = LocateRegistry.createRegistry(port);
-
-            this.proxy = ProxyFactory.createServerProxy(this);
-            IServer stub = (IServer) UnicastRemoteObject.exportObject(proxy, 0);
-            this.registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
+            ProxyFactory.getInstance().addServer(this);
+            this.rebindProxy();
 
         } catch (RemoteException e) {
             e.printStackTrace();
         }
 
+    }
+    
+    public void rebindProxy() throws RemoteException {
+        this.proxy = ProxyFactory.getInstance().createServerProxy();
+        IServer stub = (IServer) UnicastRemoteObject.exportObject(this.proxy, 0);
+        this.registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
+    }
+    
+    // the others have add this to the proxy
+    // this has to be called everytime a 
+    // server joins in order to synchronize
+    // the servers...
+    public void sendProxyReference(SpreadGroup group) {
+       try {
+           SpreadMessage message = new SpreadMessage();
+           message.setObject((IServer) this);
+           message.setSelfDiscard(true);
+           message.setReliable();
+           message.addGroup(group);
+           spreadCon.multicast(message);
+    } catch (SpreadException e) {
+        e.printStackTrace();
+    }
     }
     
     private List<Game> anonymizeGames() {
@@ -241,4 +262,51 @@ public class ReplicatedServer implements IServer {
         return anonymize;
     }
 
+
+    public String getServerId() {
+        return serverId;
+    }
+
+    public String toString() {
+        return this.serverId;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((daemonIP == null) ? 0 : daemonIP.hashCode());
+        result = prime * result + daemonPort;
+        result = prime * result + rmiPort;
+        result = prime * result + ((serverId == null) ? 0 : serverId.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        ReplicatedServer other = (ReplicatedServer) obj;
+        if (daemonIP == null) {
+            if (other.daemonIP != null)
+                return false;
+        } else if (!daemonIP.equals(other.daemonIP))
+            return false;
+        if (daemonPort != other.daemonPort)
+            return false;
+        if (rmiPort != other.rmiPort)
+            return false;
+        if (serverId == null) {
+            if (other.serverId != null)
+                return false;
+        } else if (!serverId.equals(other.serverId))
+            return false;
+        return true;
+    }
+    
+    
 }

@@ -1,22 +1,40 @@
 package at.tuwien.ads11.proxy;
 
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import at.tuwien.ads11.remote.IServer;
 
-public class ProxyFactory {
+public final class ProxyFactory {
 
-    public static IServer createServerProxy(IServer server) {
-        List<IServer> servers = new ArrayList<IServer>();
-        servers.add(server);
+    private static ProxyFactory uniqueInstance;
+    
+    private Set<IServer> servers;
+    
+    public static synchronized ProxyFactory getInstance() {
+        if (uniqueInstance == null) {
+            uniqueInstance = new ProxyFactory();
+        }
         
+        return uniqueInstance;
+    }
+    
+    public IServer createServerProxy() {
         IServer proxy = (IServer) Proxy.newProxyInstance(
                 ServerInvocationHandler.class.getClassLoader(),
                 new Class[] { IServer.class },
-                new ServerInvocationHandler(servers));
+                new ServerInvocationHandler(this.servers));
         
         return proxy;
+    }
+    
+    public void addServer(IServer server) {
+        servers.add(server);
+    }
+    
+    private ProxyFactory() {
+        this.servers = new HashSet<IServer>();
     }
 }
