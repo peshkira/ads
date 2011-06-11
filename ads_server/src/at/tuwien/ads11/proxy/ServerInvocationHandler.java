@@ -33,7 +33,7 @@ public class ServerInvocationHandler implements InvocationHandler {
             }
         }
         
-        throw new Exception("Could not reach the server. Please try again later " + servers.size());
+        throw new Exception("Could not reach the server. Please try again later ");
         
     }
 }

@@ -31,21 +31,21 @@ public class TestClient {
             } else {
                 System.out.println("I am not registered");
             }
-            
-            boolean created = server.createGame("MyGame", "test", "pass");
-            System.out.println("Game created: " + created);
-            
-            
-            List<Game> games = server.fetchGames();
-            System.out.println("Games: " + games.size());
-            
-            if (games.size() > 0) {
-                System.out.println(games.get(0).getName());
-                System.out.println(games.get(0).getHost());
-            }
-            
-            boolean cancelGame = server.cancelGame("MyGame", "test", "pass");
-            System.out.println("Game cancelled: " + cancelGame);
+//            
+//            boolean created = server.createGame("MyGame", "test", "pass");
+//            System.out.println("Game created: " + created);
+//            
+//            
+//            List<Game> games = server.fetchGames();
+//            System.out.println("Games: " + games.size());
+//            
+//            if (games.size() > 0) {
+//                System.out.println(games.get(0).getName());
+//                System.out.println(games.get(0).getHost());
+//            }
+//            
+//            boolean cancelGame = server.cancelGame("MyGame", "test", "pass");
+//            System.out.println("Game cancelled: " + cancelGame);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -1,6 +1,10 @@
 package at.tuwien.ads11.common;
 
-public class ClientMock {
+import java.io.Serializable;
+
+public class ClientMock implements Serializable {
+
+    private static final long serialVersionUID = -2437810643302720370L;
 
     private String name;
     

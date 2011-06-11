@@ -6,6 +6,8 @@ public final class ServerConstants {
 
     public static final short MSG_GET_SERVER_REFERENCE = 1;
     public static final short MSG_GET_SERVER_REFERENCE_RESPONSE = 2;
+    public static final short MSG_CLIENT_REGISTER = 3;
+
     
     private ServerConstants() {
         
