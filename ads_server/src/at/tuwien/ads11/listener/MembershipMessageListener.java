@@ -1,5 +1,8 @@
 package at.tuwien.ads11.listener;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import spread.AdvancedMessageListener;
 import spread.SpreadException;
 import spread.SpreadGroup;
@@ -10,6 +13,8 @@ import at.tuwien.ads11.utils.ServerConstants;
 
 public class MembershipMessageListener implements AdvancedMessageListener {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MembershipMessageListener.class);
+    
     private ReplicatedServer server;
 
     public MembershipMessageListener(ReplicatedServer server) {
@@ -34,8 +39,7 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     public void regularMessageReceived(SpreadMessage msg) {
         // do nothing for now
         // consider to use different listeners for different types of messages
-        
-        System.out.println("Message received: " + msg.getType());
+        LOG.debug("Message of type {} received", msg.getType());
         
         if (msg.getType() == ServerConstants.MSG_GET_SERVER_REFERENCE) {
             this.server.sendProxyReference(msg.getSender());
@@ -52,13 +56,13 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     }
 
     private void joinMessage(SpreadGroup joined, SpreadMessage msg) {
-        System.out.println(joined.toString() + " has joined the group");
+        LOG.info("{} has joined the group", joined.toString());
         // TODO synchornize the new guy...
         
         this.server.askForServerReference();
     }
 
     private void leaveMessage(SpreadGroup left) {
-        System.out.println(left.toString() + " has left the group");
+        LOG.info("{} has left the group", left.toString());
     }
 }

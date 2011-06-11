@@ -45,8 +45,10 @@ public class ServerConsole implements Runnable {
             this.run = false;
         } else if (line.equals("help")) {
             System.out.println("you are on your man.");
+        } else if (line.equals("")) {
+            //do nothing...
         } else {
-            this.prompt("Unknown command: " + line+"\n");
+            System.out.println("Unknown command: " + line);
         }
         
 

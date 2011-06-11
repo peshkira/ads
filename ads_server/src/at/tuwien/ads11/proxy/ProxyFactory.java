@@ -4,10 +4,15 @@ import java.lang.reflect.Proxy;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import at.tuwien.ads11.remote.IServer;
 
 public final class ProxyFactory {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ProxyFactory.class);
+    
     private static ProxyFactory uniqueInstance;
     
     private Set<IServer> servers;
@@ -32,7 +37,7 @@ public final class ProxyFactory {
     public boolean addServer(IServer server) {
         boolean added = servers.add(server);
         if (added) {
-            System.out.println("New Server is known to the proxy: " + server.toString());
+            LOG.info("Server {} is now known the to proxy", server.toString());
         }
         
         return added;

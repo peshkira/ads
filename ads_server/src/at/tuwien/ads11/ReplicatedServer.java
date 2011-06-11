@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.rmi.AccessException;
 import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -16,6 +15,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import spread.SpreadConnection;
 import spread.SpreadException;
@@ -34,6 +36,8 @@ import at.tuwien.ads11.utils.ServerMessageFactory;
 public class ReplicatedServer implements IServer {
 
     private static final long serialVersionUID = -8917839808656077153L;
+    
+    private static final Logger LOG = LoggerFactory.getLogger(ReplicatedServer.class); 
 
     private List<Game> games;
     private List<Game> playing;
@@ -77,11 +81,11 @@ public class ReplicatedServer implements IServer {
         try {
             props.load(new FileInputStream(args[0]));
         } catch (FileNotFoundException e) {
-            System.out.println("Config file: " + args[0] + " not found.");
+            LOG.error("Config file: {} not found.", args[0]);
             e.printStackTrace();
             System.exit(1);
         } catch (IOException e) {
-            System.out.println("Error in processing the config file.");
+            LOG.error("Error in processing the config file.");
             System.exit(1);
         }
 
@@ -180,83 +184,13 @@ public class ReplicatedServer implements IServer {
         } catch (NoSuchObjectException e) {
             e.printStackTrace();
         } catch (SpreadException e) {
-            System.err.println("Error while leaving the server group.");
+            LOG.error("Error while leaving the server group.");
             e.printStackTrace();
         }
 
         // consider to kill the process here.
     }
-
-    // ========= private ===========
-
-    private void start() {
-        // connect to the spread deamon
-        // check if this is the first server in the group
-        // if yes create the proxy and bind it to a registry...
-        // if no get the proxy, add this server to it and rebind it...
-
-        connectToSpread();
-        if (adminsRegistry) {
-            getRMIRegistry();
-        }
-    }
-
-    private void connectToSpread() {
-        spreadCon = new SpreadConnection();
-        spreadCon.add(new MembershipMessageListener(this));
-        serverGroup = new SpreadGroup();
-
-        try {
-
-            spreadCon.connect(InetAddress.getByName(daemonIP), daemonPort, getServerId(), false, true);
-            serverGroup.join(spreadCon, ServerConstants.SPREAD_SERVER_GROUP);
-
-        } catch (UnknownHostException e) {
-            System.err.println("Can not find daemon: " + daemonIP);
-            e.printStackTrace();
-            System.exit(1);
-        } catch (SpreadException e) {
-            System.err.println("Error while connecting to Spread.");
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
-
-    private void getRMIRegistry() {
-        try {
-            this.registry = LocateRegistry.createRegistry(this.rmiPort);
-
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            System.out.println("System will now exit.");
-            System.exit(1);
-        }
-    }
-
-    private void rebindProxy(IServer... servers) {
-        boolean rebind = false;
-        for (IServer server : servers) {
-            if (ProxyFactory.getInstance().addServer(server)) {
-                rebind = true;
-            }
-        }
-
-        try {
-            if (rebind) {
-                System.out.println("rebinding proxy ...");
-
-                if (this.proxy != null)
-                    UnicastRemoteObject.unexportObject(this.proxy, true);
-
-                this.proxy = ProxyFactory.getInstance().createServerProxy();
-                IServer stub = (IServer) UnicastRemoteObject.exportObject(proxy, 0);
-                this.registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
+    
     public void sendProxyReference(SpreadGroup group) {
         try {
             SpreadMessage message = this.factory.getDefaultMessage();
@@ -275,7 +209,8 @@ public class ReplicatedServer implements IServer {
 
     public void askForServerReference() {
         if (this.adminsRegistry) {
-            System.out.println("Asking for Server References");
+            LOG.info("Asking for Server References to refresh proxy");
+            
             try {
                 SpreadMessage message = this.factory.getDefaultMessage();
                 message.addGroup(serverGroup);
@@ -287,6 +222,74 @@ public class ReplicatedServer implements IServer {
             }
         }
     }
+
+    // ========= private ===========
+
+    private void start() {
+        connectToSpread();
+        if (adminsRegistry) {
+            getRMIRegistry();
+        }
+    }
+
+    private void connectToSpread() {
+        spreadCon = new SpreadConnection();
+        spreadCon.add(new MembershipMessageListener(this));
+        serverGroup = new SpreadGroup();
+
+        try {
+
+            spreadCon.connect(InetAddress.getByName(daemonIP), daemonPort, getServerId(), false, true);
+            serverGroup.join(spreadCon, ServerConstants.SPREAD_SERVER_GROUP);
+
+        } catch (UnknownHostException e) {
+            LOG.error("Can not find daemon: {}", daemonIP);
+            System.err.println();
+            e.printStackTrace();
+            System.exit(1);
+        } catch (SpreadException e) {
+            LOG.error("Error while connecting to Spread.");
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private void getRMIRegistry() {
+        try {
+            this.registry = LocateRegistry.createRegistry(this.rmiPort);
+
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            LOG.error("System will exit now");
+            System.exit(1);
+        }
+    }
+
+    private void rebindProxy(IServer... servers) {
+        boolean rebind = false;
+        for (IServer server : servers) {
+            if (ProxyFactory.getInstance().addServer(server)) {
+                rebind = true;
+            }
+        }
+
+        try {
+            if (rebind) {
+                LOG.info("Rebinding proxy...");
+
+                if (this.proxy != null)
+                    UnicastRemoteObject.unexportObject(this.proxy, true);
+
+                this.proxy = ProxyFactory.getInstance().createServerProxy();
+                IServer stub = (IServer) UnicastRemoteObject.exportObject(proxy, 0);
+                this.registry.rebind(Constants.REMOTE_SERVER_OBJECT_NAME, stub);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
     private List<Game> anonymizeGames() {
         List<Game> anonymize = new ArrayList<Game>();
