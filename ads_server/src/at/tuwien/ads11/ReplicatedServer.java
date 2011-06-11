@@ -55,7 +55,7 @@ public class ReplicatedServer implements IServer {
     private boolean adminsRegistry;
 
     private transient Registry registry;
-    private SpreadConnection spreadCon;
+    private transient SpreadConnection spreadCon;
     private SpreadGroup serverGroup;
     private transient IServer proxy;
     private transient Map<RequestUUID, Object> requests;
@@ -229,7 +229,7 @@ public class ReplicatedServer implements IServer {
             SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
             message.addGroup(group);
             message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE);
-            message.setObject((IServer) this);
+            message.setObject(this);
             spreadCon.multicast(message);
         } catch (SpreadException e) {
             e.printStackTrace();

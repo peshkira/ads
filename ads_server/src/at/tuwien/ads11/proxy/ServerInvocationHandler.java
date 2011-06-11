@@ -17,6 +17,10 @@ public class ServerInvocationHandler implements InvocationHandler {
         this.servers = servers;
     }
 
+    // THIS DOES NOT WORK PROPERLY BECAUSE THE FRIGGIN SPREAD CONNECTION IS NOT SERIALIZED.
+    // THE ONLY IDEA I HAVE IS TO START AN RMI REGISTRY FOR ALL SERVERS (after all)
+    // AND PUT EACH SERVER IN THE REGISTRY...
+    // THEN THE PROXY WILL HAVE TO INVOKE THE MEHTOD REMOTELY TOO..
     @Override
     public Object invoke(Object proxy, Method m, Object[] args) throws Throwable {
         System.out.println("invoking: " + m.getName());
