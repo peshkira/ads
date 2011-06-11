@@ -11,8 +11,11 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -26,11 +29,11 @@ import spread.SpreadMessage;
 import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.listener.MembershipMessageListener;
-import at.tuwien.ads11.listener.ClientRequestMessageListener;
-import at.tuwien.ads11.listener.ServerRequestMessageListener;
 import at.tuwien.ads11.proxy.ProxyFactory;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
+import at.tuwien.ads11.utils.RequestUUID;
+import at.tuwien.ads11.utils.ResultPoller;
 import at.tuwien.ads11.utils.ServerConstants;
 import at.tuwien.ads11.utils.ServerMessageFactory;
 
@@ -38,10 +41,9 @@ import at.tuwien.ads11.utils.ServerMessageFactory;
 public class ReplicatedServer implements IServer {
 
     private static final long serialVersionUID = -8917839808656077153L;
-    
-    private static final Logger LOG = LoggerFactory.getLogger(ReplicatedServer.class); 
 
-    // State object?
+    private static final Logger LOG = LoggerFactory.getLogger(ReplicatedServer.class);
+
     private List<Game> games;
     private List<Game> playing;
     private Set<ClientMock> clients;
@@ -50,16 +52,13 @@ public class ReplicatedServer implements IServer {
     private int daemonPort;
     private String daemonIP;
     private String serverId;
+    private boolean adminsRegistry;
 
     private transient Registry registry;
     private transient SpreadConnection spreadCon;
-    private transient SpreadGroup serverGroup;
-    private transient boolean adminsRegistry;
-    private transient ServerMessageFactory factory;
+    private SpreadGroup serverGroup;
     private transient IServer proxy;
-    
-    // Transient?
-    private boolean hasState = false; 
+    private transient Map<RequestUUID, Object> requests;
 
     public ReplicatedServer(Properties props) {
         this.serverId = props.getProperty("server.id");
@@ -73,7 +72,7 @@ public class ReplicatedServer implements IServer {
         this.games = new ArrayList<Game>();
         this.clients = new HashSet<ClientMock>();
         this.playing = new ArrayList<Game>();
-        this.factory = new ServerMessageFactory();
+        this.requests = new HashMap<RequestUUID, Object>();
     }
 
     public static void main(String args[]) {
@@ -114,8 +113,32 @@ public class ReplicatedServer implements IServer {
     @Override
     public boolean register(String name, String pass) throws RemoteException {
         ClientMock client = new ClientMock(name, pass);
-        boolean add = this.clients.add(client);
-        return add;
+        RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
+        try {
+
+            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            message.setType(ServerConstants.MSG_CLIENT_REGISTER);
+            message.digest(client);
+            message.digest(uuid);
+            message.addGroup(serverGroup);
+            this.spreadCon.multicast(message);
+
+        } catch (SpreadException e) {
+            throw new RemoteException("An error occured, try with other server");
+        }
+        
+        ResultPoller poller = new ResultPoller(this, 10);
+        Boolean result = (Boolean) poller.poll(uuid);
+        
+        if (result != null) {
+            return result;
+        } else {
+            throw new RemoteException("No response");
+        }
+    }
+    
+    public boolean register(ClientMock mock) {
+        return this.clients.add(mock);
     }
 
     /**
@@ -176,6 +199,10 @@ public class ReplicatedServer implements IServer {
         // TODO Auto-generated method stub
         return false;
     }
+    
+    public Map<RequestUUID, Object> getRequests() {
+        return this.requests;
+    }
 
     protected void shutdown() {
         try {
@@ -196,13 +223,13 @@ public class ReplicatedServer implements IServer {
 
         // consider to kill the process here.
     }
-    
+
     public void sendProxyReference(SpreadGroup group) {
         try {
-            SpreadMessage message = this.factory.getDefaultMessage();
+            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
             message.addGroup(group);
             message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE);
-            message.setObject((IServer) this);
+            message.setObject(this);
             spreadCon.multicast(message);
         } catch (SpreadException e) {
             e.printStackTrace();
@@ -216,9 +243,9 @@ public class ReplicatedServer implements IServer {
     public void askForServerReference() {
         if (this.adminsRegistry) {
             LOG.info("Asking for Server References to refresh proxy");
-            
+
             try {
-                SpreadMessage message = this.factory.getDefaultMessage();
+                SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
                 message.addGroup(serverGroup);
                 message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE);
                 spreadCon.multicast(message);
@@ -241,8 +268,6 @@ public class ReplicatedServer implements IServer {
     private void connectToSpread() {
         spreadCon = new SpreadConnection();
         spreadCon.add(new MembershipMessageListener(this));
-        spreadCon.add(new ServerRequestMessageListener(this));
-        spreadCon.add(new ClientRequestMessageListener(this));
         serverGroup = new SpreadGroup();
 
         try {
@@ -296,8 +321,6 @@ public class ReplicatedServer implements IServer {
             e.printStackTrace();
         }
     }
-
-
 
     private List<Game> anonymizeGames() {
         List<Game> anonymize = new ArrayList<Game>();

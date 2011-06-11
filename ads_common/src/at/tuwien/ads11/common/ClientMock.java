@@ -2,14 +2,11 @@ package at.tuwien.ads11.common;
 
 import java.io.Serializable;
 
-public class ClientMock implements Serializable{
+public class ClientMock implements Serializable {
 
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = -2437810643302720370L;
+    private static final long serialVersionUID = -2437810643302720370L;
 
-	private String name;
+    private String name;
     
     private String pass;
     

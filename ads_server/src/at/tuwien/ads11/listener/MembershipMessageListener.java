@@ -1,5 +1,7 @@
 package at.tuwien.ads11.listener;
 
+import java.util.Vector;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +10,9 @@ import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
 import at.tuwien.ads11.ReplicatedServer;
+import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.remote.IServer;
+import at.tuwien.ads11.utils.RequestUUID;
 import at.tuwien.ads11.utils.ServerConstants;
 
 public class MembershipMessageListener implements AdvancedMessageListener {
@@ -39,7 +43,34 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     public void regularMessageReceived(SpreadMessage msg) {
         // do nothing for now
         // consider to use different listeners for different types of messages
+        LOG.debug("Message of type {} received", msg.getType());
         
+        if (msg.getType() == ServerConstants.MSG_GET_SERVER_REFERENCE) {
+            this.server.sendProxyReference(msg.getSender());
+            
+        } else if (msg.getType() == ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE) {
+            try {
+                IServer s = (IServer) msg.getObject();
+                this.server.receiveServerReference(s);
+
+            } catch (SpreadException e) {
+                e.printStackTrace();
+            }
+        } else if (msg.getType() == ServerConstants.MSG_CLIENT_REGISTER) {
+            try {
+                Vector digest = msg.getDigest();
+                ClientMock client = (ClientMock) digest.get(0);
+                RequestUUID uuid = (RequestUUID) digest.get(1);
+                Boolean registered = server.register(client);
+                
+                if (server.getServerId().equals(uuid.getServer())) {
+                    server.getRequests().put(uuid, registered);
+                }
+                
+            } catch (SpreadException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void joinMessage(SpreadGroup joined, SpreadMessage msg) {
