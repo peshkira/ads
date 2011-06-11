@@ -26,6 +26,8 @@ import spread.SpreadMessage;
 import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.listener.MembershipMessageListener;
+import at.tuwien.ads11.listener.ClientRequestMessageListener;
+import at.tuwien.ads11.listener.ServerRequestMessageListener;
 import at.tuwien.ads11.proxy.ProxyFactory;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
@@ -39,6 +41,7 @@ public class ReplicatedServer implements IServer {
     
     private static final Logger LOG = LoggerFactory.getLogger(ReplicatedServer.class); 
 
+    // State object?
     private List<Game> games;
     private List<Game> playing;
     private Set<ClientMock> clients;
@@ -54,6 +57,9 @@ public class ReplicatedServer implements IServer {
     private transient boolean adminsRegistry;
     private transient ServerMessageFactory factory;
     private transient IServer proxy;
+    
+    // Transient?
+    private boolean hasState = false; 
 
     public ReplicatedServer(Properties props) {
         this.serverId = props.getProperty("server.id");
@@ -235,6 +241,8 @@ public class ReplicatedServer implements IServer {
     private void connectToSpread() {
         spreadCon = new SpreadConnection();
         spreadCon.add(new MembershipMessageListener(this));
+        spreadCon.add(new ServerRequestMessageListener(this));
+        spreadCon.add(new ClientRequestMessageListener(this));
         serverGroup = new SpreadGroup();
 
         try {
