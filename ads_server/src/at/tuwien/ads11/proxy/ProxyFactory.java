@@ -1,7 +1,6 @@
 package at.tuwien.ads11.proxy;
 
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,8 +29,13 @@ public final class ProxyFactory {
         return proxy;
     }
     
-    public void addServer(IServer server) {
-        servers.add(server);
+    public boolean addServer(IServer server) {
+        boolean added = servers.add(server);
+        if (added) {
+            System.out.println("New Server is known to the proxy: " + server.toString());
+        }
+        
+        return added;
     }
     
     private ProxyFactory() {

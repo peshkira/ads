@@ -28,12 +28,12 @@ public class ServerInvocationHandler implements InvocationHandler {
                 IServer next = iter.next();
                 return m.invoke(next, args);
             } catch (Exception e) {
-                System.err.println(e.getMessage()); //for debug
+                e.printStackTrace(); //for debug
                 iter.remove();
             }
         }
         
-        throw new Exception("Could not reach the server. Please try again later");
+        throw new Exception("Could not reach the server. Please try again later " + servers.size());
         
     }
 }
