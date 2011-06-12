@@ -27,7 +27,12 @@ public class ClientRequestMessageListener implements BasicMessageListener {
 	@Override
 	public void messageReceived(SpreadMessage msg) {
 		LOG.debug("Message of type {} received", msg.getType());
-		
+		if(server.getBufferMsgs().get())
+			server.getMsgBuffer().add(msg);
+		processMsg(msg);
+	}
+	
+	public void processMsg(SpreadMessage msg) {
 		switch(msg.getType()) {
 		case ServerConstants.MSG_PLAYER_REGISTER:
 			try {
@@ -60,8 +65,6 @@ public class ClientRequestMessageListener implements BasicMessageListener {
 		default:
 			break;
 		}
-		
-		
 	}
 
 }

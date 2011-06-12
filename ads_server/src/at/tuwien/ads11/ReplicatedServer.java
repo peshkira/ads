@@ -11,11 +11,14 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +65,12 @@ public class ReplicatedServer implements IServer {
     private Map<RequestUUID, Object> requests;
 
     private IServer stub;
+    private List<SpreadGroup> groupMembers;
+    private int lastGroupMemberIndex;
+    
+    private List<SpreadMessage> msgBuffer;
+    private AtomicBoolean upToDate;
+    private AtomicBoolean bufferMsgs;
 
     public ReplicatedServer(Properties props) {
         this.serverId = props.getProperty("server.id");
@@ -77,7 +86,9 @@ public class ReplicatedServer implements IServer {
 
         this.state = new ServerState();
         this.requests = new HashMap<RequestUUID, Object>();
-
+        upToDate = new AtomicBoolean(false);
+        bufferMsgs = new AtomicBoolean(false);
+        msgBuffer = Collections.synchronizedList(new LinkedList<SpreadMessage>());
     }
 
     public static void main(String args[]) {
@@ -122,7 +133,7 @@ public class ReplicatedServer implements IServer {
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
         try {
 
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.setType(ServerConstants.MSG_PLAYER_REGISTER);
             message.digest(client);
             message.digest(uuid);
@@ -234,7 +245,7 @@ public class ReplicatedServer implements IServer {
 
     public void sendProxyReference(SpreadGroup group) {
         try {
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.addGroup(group);
             message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE);
             message.setObject(this.rmi);
@@ -253,7 +264,7 @@ public class ReplicatedServer implements IServer {
             LOG.debug("Asking for Server References to refresh proxy");
 
             try {
-                SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+                SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
                 message.addGroup(joined);
                 message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE);
                 spreadCon.multicast(message);
@@ -347,18 +358,84 @@ public class ReplicatedServer implements IServer {
 
         return anonymize;
     }
+    
+    public void rejoinServerGroup() throws SpreadException {
+    	serverGroup.leave();
+    	serverGroup.join(spreadCon, ServerConstants.SPREAD_SERVER_GROUP);
+    }
+    
+    public void sendMsg(SpreadMessage msg) throws SpreadException {
+    	this.spreadCon.multicast(msg);
+    }
 
     public String getServerId() {
         return serverId;
     }
+    
+    public ServerState getState() {
+		return state;
+	}
+
+	public void setState(ServerState state) {
+		this.state = state;
+		if(!msgBuffer.isEmpty()) {
+			ClientRequestMessageListener processor = new ClientRequestMessageListener(this);
+			for(SpreadMessage msg : msgBuffer)
+				processor.processMsg(msg);
+			msgBuffer.clear();
+		}
+		upToDate.set(true);
+	}
+
+	public List<SpreadGroup> getGroupMembers() {
+		return groupMembers;
+	}
+
+	public void setGroupMembers(SpreadGroup[] groupMembers) {
+		this.groupMembers = new LinkedList<SpreadGroup>();
+		for(SpreadGroup group : groupMembers) {
+			if(group.equals(ownGroup))
+				continue;
+			else
+				this.groupMembers.add(group);
+		}
+	}
+	
+	public int getLastGroupMemberIndex() {
+		return lastGroupMemberIndex;
+	}
+
+	public void setLastGroupMemberIndex(int lastGroupMemberIndex) {
+		this.lastGroupMemberIndex = lastGroupMemberIndex;
+	}
 
     @Override
     public String toString() {
         return this.serverId;
     }
 
-    public Object getOwnGroup() {
+    public SpreadGroup getOwnGroup() {
         return this.ownGroup;
     }
+
+	public SpreadGroup getServerGroup() {
+		return serverGroup;
+	}
+
+	public List<SpreadMessage> getMsgBuffer() {
+		return msgBuffer;
+	}
+
+	public void setMsgBuffer(List<SpreadMessage> msgBuffer) {
+		this.msgBuffer = msgBuffer;
+	}
+
+	public AtomicBoolean getUpToDate() {
+		return upToDate;
+	}
+
+	public AtomicBoolean getBufferMsgs() {
+		return bufferMsgs;
+	}
 
 }

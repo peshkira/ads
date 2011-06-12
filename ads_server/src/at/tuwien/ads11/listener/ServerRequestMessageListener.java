@@ -1,5 +1,8 @@
 package at.tuwien.ads11.listener;
 
+import java.util.Collections;
+import java.util.LinkedList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,8 +10,10 @@ import spread.BasicMessageListener;
 import spread.SpreadException;
 import spread.SpreadMessage;
 import at.tuwien.ads11.ReplicatedServer;
+import at.tuwien.ads11.ServerState;
 import at.tuwien.ads11.utils.RMIServerInfo;
 import at.tuwien.ads11.utils.ServerConstants;
+import at.tuwien.ads11.utils.ServerMessageFactory;
 
 public class ServerRequestMessageListener implements BasicMessageListener {
 
@@ -22,7 +27,6 @@ public class ServerRequestMessageListener implements BasicMessageListener {
 	@Override
 	public void messageReceived(SpreadMessage msg) {
 		LOG.debug("Message of type {} received", msg.getType());
-
 		switch(msg.getType()) {
 		case ServerConstants.MSG_GET_SERVER_REFERENCE:
 			this.server.sendProxyReference(msg.getSender());
@@ -38,11 +42,35 @@ public class ServerRequestMessageListener implements BasicMessageListener {
 	        }
 	        break;
 		case ServerConstants.MSG_GET_SERVER_STATE:
+			processServerStateRequest(msg);
 			break;
 		case ServerConstants.MSG_GET_SERVER_STATE_RESPONSE:
-		    break;
+		    processServerStateReponse(msg);
+			break;
 		default:
 			break;
+		}
+	}
+	
+	private void processServerStateRequest(SpreadMessage msg) {
+		if(msg.getSender().equals(server.getOwnGroup()))
+		{
+			server.getBufferMsgs().set(true);
+		} else
+			try {
+				server.sendMsg(ServerMessageFactory.getInstance().createSafeMessage(ServerConstants.MSG_GET_SERVER_STATE_RESPONSE, server.getState(), msg.getSender()));
+			} catch (SpreadException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
+	
+	private void processServerStateReponse(SpreadMessage msg) {
+		try {
+			server.setState((ServerState)msg.getObject());
+		} catch (SpreadException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 }
