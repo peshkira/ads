@@ -171,7 +171,7 @@ public class ReplicatedServer implements IServer {
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
         try {
 
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.setType(ServerConstants.MSG_PLAYER_UNREGISTER);
             message.digest(client);
             message.digest(uuid);
@@ -213,7 +213,7 @@ public class ReplicatedServer implements IServer {
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
         try {
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.setType(ServerConstants.MSG_GAME_CREATE);
             message.digest(g);
             message.digest(uuid);
@@ -254,7 +254,7 @@ public class ReplicatedServer implements IServer {
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
         try {
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.setType(ServerConstants.MSG_GAME_CANCEL);
             message.digest(g);
             message.digest(uuid);
@@ -293,7 +293,7 @@ public class ReplicatedServer implements IServer {
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
         try {
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.setType(ServerConstants.MSG_GAME_START);
             message.digest(g);
             message.digest(uuid);
@@ -343,7 +343,7 @@ public class ReplicatedServer implements IServer {
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
         try {
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.setType(ServerConstants.MSG_GAME_JOIN);
             message.digest(g);
             message.digest(uuid);
