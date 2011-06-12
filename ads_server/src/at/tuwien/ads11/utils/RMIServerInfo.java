@@ -2,7 +2,7 @@ package at.tuwien.ads11.utils;
 
 import java.io.Serializable;
 
-public class RMIServerInfo implements Serializable {
+public class RMIServerInfo implements Serializable{
 
     private static final long serialVersionUID = 688196798558495880L;
 

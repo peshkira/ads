@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -32,9 +33,9 @@ public class ServerInvocationHandler implements InvocationHandler {
         this.calls = servers;
         Iterator<RMIServerInfo> iter = this.calls.iterator();
 
-        while (iter.hasNext()) {
+        while (!this.calls.isEmpty()) {
+            RMIServerInfo next = this.getNextServerNonDeterministically();
             try {
-                RMIServerInfo next = iter.next();
                 LOG.debug("on replicated server {}:{}", next.getHost(), next.getPort());
 
                 IServer server = (IServer) Naming.lookup("rmi://" + next.getHost() + ":" + next.getPort() + "/"
@@ -50,5 +51,22 @@ public class ServerInvocationHandler implements InvocationHandler {
         LOG.error("None of the replicated servers could be reached, throwing exception to client");
         throw new RemoteException("Could not reach the server. Please try again later ");
 
+    }
+
+    private RMIServerInfo getNextServerNonDeterministically() {
+        int size = this.calls.size();
+        Iterator<RMIServerInfo> iter = this.calls.iterator();
+        if (size > 1) {
+            int pos = new Random().nextInt(100) % size;
+            System.out.println("SERVER POS: " + pos);
+            while (iter.hasNext()) {
+                if (pos == 0) {
+                    return iter.next();
+                }
+                iter.next();
+                pos--;
+            }
+        }
+        return iter.next();
     }
 }
