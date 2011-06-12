@@ -8,10 +8,9 @@ import at.tuwien.ads11.common.ClientMock;
 
 
 public class Game implements Serializable {
-    //  will contain game related info:
-    // players with their ids and eventually credentials
-    // name of the game
-    
+
+    private static final long serialVersionUID = 9046310918111541521L;
+
     private String name;
     
     private String host;

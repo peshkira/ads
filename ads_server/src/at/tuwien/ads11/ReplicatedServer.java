@@ -51,7 +51,7 @@ public class ReplicatedServer implements IServer {
     private ServerState state;
 
     private RMIServerInfo rmi;
-    
+
     private int daemonPort;
     private String daemonIP;
     private String serverId;
@@ -74,11 +74,11 @@ public class ReplicatedServer implements IServer {
 
     public ReplicatedServer(Properties props) {
         this.serverId = props.getProperty("server.id");
-        
+
         String host = props.getProperty("server.rmi.host");
         int port = Integer.parseInt(props.getProperty("server.rmi.port"));
         this.rmi = new RMIServerInfo(host, port);
-        
+
         this.adminsProxy = Boolean.parseBoolean(props.getProperty("server.proxy.administer"));
 
         this.daemonPort = Integer.parseInt(props.getProperty("spread.daemon.port"));
@@ -127,7 +127,7 @@ public class ReplicatedServer implements IServer {
      * new one.
      */
     @Override
-    public boolean register(String name, String pass) throws RemoteException {
+    public synchronized boolean register(String name, String pass) throws RemoteException {
         LOG.debug("incoming registration call");
         ClientMock client = new ClientMock(name, pass);
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
@@ -146,6 +146,7 @@ public class ReplicatedServer implements IServer {
 
         ResultPoller poller = new ResultPoller(this, 10);
         Boolean result = (Boolean) poller.poll(uuid);
+        this.requests.remove(uuid); // not needed anymore
 
         if (result != null) {
             return result;
@@ -155,7 +156,7 @@ public class ReplicatedServer implements IServer {
     }
 
     public boolean register(ClientMock mock) {
-        LOG.info("registering client");
+        LOG.info("registering client [{}]", mock.getName());
         return this.state.addClient(mock);
     }
 
@@ -164,57 +165,237 @@ public class ReplicatedServer implements IServer {
      * the method will just return false.
      */
     @Override
-    public boolean unregister(String name, String pass) throws RemoteException {
-        ClientMock mock = new ClientMock(name, pass);
-        return this.state.removeClient(mock);
+    public synchronized boolean unregister(String name, String pass) throws RemoteException {
+        LOG.debug("incoming unregistration call");
+        ClientMock client = new ClientMock(name, pass);
+        RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
+        try {
+
+            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            message.setType(ServerConstants.MSG_PLAYER_UNREGISTER);
+            message.digest(client);
+            message.digest(uuid);
+            message.addGroup(serverGroup);
+            this.spreadCon.multicast(message);
+
+        } catch (SpreadException e) {
+            throw new RemoteException("An error occured, try with other server");
+        }
+
+        ResultPoller poller = new ResultPoller(this, 10);
+        Boolean result = (Boolean) poller.poll(uuid);
+        this.requests.remove(uuid); // not needed anymore
+
+        if (result != null) {
+            return result;
+        } else {
+            throw new RemoteException("No response");
+        }
+    }
+
+    public Boolean unregister(ClientMock client) {
+        return this.state.removeClient(client);
     }
 
     /**
      * Returns the current list of games that are not started yet.
      */
     @Override
-    public List<Game> fetchGames() throws RemoteException {
-        return this.anonymizeGames();
+    public synchronized List<Game> fetchGames() throws RemoteException {
+        return this.anonymizeGames(); // this is read, so no need for sync
     }
 
     @Override
-    public boolean createGame(String game, String name, String pass) throws RemoteException {
-        Game g = new Game(game, name, pass);
-        return this.state.addGame(g);
-    }
+    public synchronized boolean createGame(String game, String name, String pass) throws RemoteException {
+        LOG.debug("incoming create game call");
 
-    @Override
-    public boolean cancelGame(String game, String name, String pass) throws RemoteException {
         Game g = new Game(game, name, pass);
-        return this.state.removeGame(g);
-    }
+        RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
-    @Override
-    public Game startGame(String game, String name, String pass) throws RemoteException {
-        Game g = new Game(game, name, pass);
+        try {
+            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            message.setType(ServerConstants.MSG_GAME_CREATE);
+            message.digest(g);
+            message.digest(uuid);
+            message.addGroup(serverGroup);
+            this.spreadCon.multicast(message);
 
-        for (Game tmp : this.state.getGames()) {
-            if (tmp.equals(g)) {
-                g = tmp;
-                break;
-            }
+        } catch (SpreadException e) {
+            throw new RemoteException("An error occured, try with other server");
         }
 
-        this.state.removeGame(g);
-        this.state.addRunningGame(g);
-        return g;
+        ResultPoller poller = new ResultPoller(this, 10);
+        Boolean result = (Boolean) poller.poll(uuid);
+        this.requests.remove(uuid); // not needed anymore
+
+        if (result != null) {
+            return result;
+        } else {
+            throw new RemoteException("No response");
+        }
+    }
+
+    public boolean createGame(Game g) {
+        ClientMock c = new ClientMock(g.getHost(), g.getPass());
+        if (this.state.getClients().contains(c) && c.getPass().equals(g.getPass())) {
+            return this.state.addGame(g);
+        }
+
+        // if client not registered
+        // or throw remote exception?
+        return false;
     }
 
     @Override
-    public boolean joinGame(String game, String name, String pass) throws RemoteException {
+    public synchronized boolean cancelGame(String game, String name, String pass) throws RemoteException {
+        LOG.debug("incoming cancel game call");
+
         Game g = new Game(game, name, pass);
+        RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
+
+        try {
+            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            message.setType(ServerConstants.MSG_GAME_CANCEL);
+            message.digest(g);
+            message.digest(uuid);
+            message.addGroup(serverGroup);
+            this.spreadCon.multicast(message);
+
+        } catch (SpreadException e) {
+            throw new RemoteException("An error occured, try with other server");
+        }
+
+        ResultPoller poller = new ResultPoller(this, 10);
+        Boolean result = (Boolean) poller.poll(uuid);
+        this.requests.remove(uuid); // not needed anymore
+
+        if (result != null) {
+            return result;
+        } else {
+            throw new RemoteException("No response");
+        }
+    }
+
+    public boolean cancelGame(Game g) {
+        ClientMock c = new ClientMock(g.getHost(), g.getPass());
+        if (this.state.getClients().contains(c) && this.state.getGames().contains(g)) {
+            return this.state.removeGame(g);
+        }
 
         return false;
     }
 
     @Override
-    public boolean leaveGame(String game, String name, String pass) throws RemoteException {
+    public synchronized Game startGame(String game, String name, String pass) throws RemoteException {
+        LOG.debug("incoming start game call");
+
+        Game g = new Game(game, name, pass);
+        RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
+
+        try {
+            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            message.setType(ServerConstants.MSG_GAME_START);
+            message.digest(g);
+            message.digest(uuid);
+            message.addGroup(serverGroup);
+            this.spreadCon.multicast(message);
+
+        } catch (SpreadException e) {
+            throw new RemoteException("An error occured, try with other server");
+        }
+
+        ResultPoller poller = new ResultPoller(this, 10);
+        Game result = (Game) poller.poll(uuid);
+        this.requests.remove(uuid); // not needed anymore
+
+        if (result != null) {
+            return result;
+        } else {
+            throw new RemoteException("No response");
+        }
+
+    }
+
+    public Game startGame(Game g) {
+        ClientMock c = new ClientMock(g.getHost(), g.getPass());
+        Game start = null;
+        if (this.state.getClients().contains(c) && this.state.getGames().contains(g)) {
+            for (Game tmp : this.state.getGames()) {
+                if (tmp.equals(g) && tmp.getPlayers().size() > 1) {
+                    start = tmp;
+                    break;
+                }
+            }
+
+            this.state.removeGame(start);
+            this.state.addRunningGame(start);
+            return this.anonymizeGame(start);
+        }
+
+        return null;
+    }
+
+    @Override
+    public synchronized boolean joinGame(String game, String name, String pass) throws RemoteException {
+        LOG.debug("incoming join game call");
+
+        Game g = new Game(game, name, pass);
+        RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
+
+        try {
+            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            message.setType(ServerConstants.MSG_GAME_JOIN);
+            message.digest(g);
+            message.digest(uuid);
+            message.addGroup(serverGroup);
+            this.spreadCon.multicast(message);
+
+        } catch (SpreadException e) {
+            throw new RemoteException("An error occured, try with other server");
+        }
+
+        ResultPoller poller = new ResultPoller(this, 10);
+        Boolean result = (Boolean) poller.poll(uuid);
+        this.requests.remove(uuid); // not needed anymore
+
+        if (result != null) {
+            return result;
+        } else {
+            throw new RemoteException("No response");
+        }
+    }
+
+    public boolean joinGame(Game g) {
+        ClientMock c = new ClientMock(g.getHost(), g.getPass());
+
+        if (this.state.getClients().contains(c)) {
+            for (Game tmp : this.state.getGames()) {
+                if (tmp.getName().equals(g.getName())) {
+                    return tmp.getPlayers().add(c);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public synchronized boolean leaveGame(String game, String name, String pass) throws RemoteException {
         // TODO Auto-generated method stub
+        return false;
+    }
+
+    public Boolean leaveGame(Game g) {
+        ClientMock c = new ClientMock(g.getHost(), g.getPass());
+
+        if (this.state.getClients().contains(c)) {
+            for (Game tmp : this.state.getGames()) {
+                if (tmp.getName().equals(g.getName())) {
+                    return tmp.getPlayers().remove(c);
+                }
+            }
+        }
+
         return false;
     }
 
@@ -280,7 +461,7 @@ public class ReplicatedServer implements IServer {
     private void start() {
         getRMIRegistry();
         connectToSpread();
-        
+
         if (this.adminsProxy) {
             this.askForServerReference(serverGroup);
         }
@@ -353,7 +534,10 @@ public class ReplicatedServer implements IServer {
 
         for (Game g : this.state.getGames()) {
             Game tmp = new Game(g.getName(), g.getHost(), "");
-            tmp.setPlayers(g.getPlayers());
+            for (ClientMock c : g.getPlayers()) {
+                tmp.getPlayers().add(new ClientMock(c.getName(), ""));
+            }
+            anonymize.add(tmp);
         }
 
         return anonymize;
@@ -366,6 +550,15 @@ public class ReplicatedServer implements IServer {
     
     public void sendMsg(SpreadMessage msg) throws SpreadException {
     	this.spreadCon.multicast(msg);
+    }
+
+    private Game anonymizeGame(Game tmp) {
+        Game anonym = new Game(tmp.getName(), tmp.getHost(), "");
+        for (ClientMock c : tmp.getPlayers()) {
+            anonym.getPlayers().add(new ClientMock(c.getName(), ""));
+        }
+
+        return anonym;
     }
 
     public String getServerId() {
