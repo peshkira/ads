@@ -7,24 +7,30 @@ import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
 
-public class ServerMessageFactory  {
+public class ServerMessageFactory  extends MessageFactory {
 
-    private MessageFactory factory;
+    private static ServerMessageFactory factory;
     
-    public ServerMessageFactory() {
-        SpreadMessage defMsg = new SpreadMessage();
-        defMsg.setAgreed();
-        defMsg.setSelfDiscard(false);
-        this.factory = new MessageFactory(defMsg);
-        
+    public static synchronized ServerMessageFactory getInstance() {
+    	if(factory == null) {
+    		SpreadMessage defMsg = new SpreadMessage();
+            defMsg.setAgreed();
+            defMsg.setSelfDiscard(false);
+    		factory = new ServerMessageFactory(defMsg);
+    	}
+    	return factory;
+    }
+    
+    private ServerMessageFactory(SpreadMessage msg) {
+        super(msg);
     }
     
     public SpreadMessage getDefaultMessage() {
-        return this.factory.createMessage();
+        return ServerMessageFactory.factory.createMessage();
     }
     
     public SpreadMessage createSafeMessage(short msgType, Serializable payload, SpreadGroup... groups) throws SpreadException {
-    	SpreadMessage msg = this.factory.createMessage();
+    	SpreadMessage msg = ServerMessageFactory.factory.createMessage();
     	msg.setSafe();
     	msg.setType(msgType);
     	for(SpreadGroup group : groups)

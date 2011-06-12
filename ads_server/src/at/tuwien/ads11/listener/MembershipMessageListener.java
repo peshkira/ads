@@ -11,6 +11,7 @@ import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
 import at.tuwien.ads11.ReplicatedServer;
+import at.tuwien.ads11.ServerState;
 import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.remote.IServer;
 import at.tuwien.ads11.utils.RequestUUID;
@@ -34,7 +35,7 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     	SpreadGroup left = msg.getMembershipInfo().getLeft();
         
         if(isOwnJoinMessage(info))
-        	this.joinMessage(info.getJoined(), msg);
+        	this.synchronizeState(info.getJoined(), msg);
         //if (joined != null && !msg.isSelfDiscard()) {
         //    this.joinMessage(joined, msg);
         //}
@@ -51,10 +52,17 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     	// USE ClientRequestMessageListener for client requests
     }
 
-    private void joinMessage(SpreadGroup joined, SpreadMessage msg) {
+    private void synchronizeState(SpreadGroup joined, SpreadMessage msg) {
         LOG.info("{} has joined the group", joined.toString());
         // TODO synchornize the new guy...
-        
+        SpreadGroup[] members = msg.getMembershipInfo().getMembers();
+        if(members.length < 2)
+        	server.setState(new ServerState());
+        else {
+        	server.setGroupMembers(members);
+        	server.setLastGroupMemberIndex(0);
+        	
+        }	
         this.server.askForServerReference();
     }
 

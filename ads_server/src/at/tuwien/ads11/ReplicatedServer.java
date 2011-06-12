@@ -56,6 +56,10 @@ public class ReplicatedServer implements IServer {
     private SpreadGroup ownGroup;
     private transient IServer proxy;
     private transient Map<RequestUUID, Object> requests;
+    //private boolean upToDate = false;
+    // Transient?
+    private SpreadGroup[] groupMembers;
+    private int lastGroupMemberIndex;
 
     public ReplicatedServer(Properties props) {
         this.serverId = props.getProperty("server.id");
@@ -66,7 +70,7 @@ public class ReplicatedServer implements IServer {
         this.daemonPort = Integer.parseInt(props.getProperty("spread.daemon.port"));
         this.daemonIP = props.getProperty("spraed.daemon.ip");
 
-        this.state = new ServerState();
+        //this.state = new ServerState();
         this.requests = new HashMap<RequestUUID, Object>();
     }
 
@@ -111,7 +115,7 @@ public class ReplicatedServer implements IServer {
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
         try {
 
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.setType(ServerConstants.MSG_PLAYER_REGISTER);
             message.digest(client);
             message.digest(uuid);
@@ -221,7 +225,7 @@ public class ReplicatedServer implements IServer {
 
     public void sendProxyReference(SpreadGroup group) {
         try {
-            SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
             message.addGroup(group);
             message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE);
             message.setObject(this);
@@ -236,11 +240,12 @@ public class ReplicatedServer implements IServer {
     }
 
     public void askForServerReference() {
-        if (this.adminsRegistry) {
+        // ? adminsregistry?
+    	if (this.adminsRegistry) {
             LOG.info("Asking for Server References to refresh proxy");
 
             try {
-                SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
+                SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
                 message.addGroup(serverGroup);
                 message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE);
                 spreadCon.multicast(message);
@@ -331,8 +336,32 @@ public class ReplicatedServer implements IServer {
     public String getServerId() {
         return serverId;
     }
+    
+    public ServerState getState() {
+		return state;
+	}
 
-    @Override
+	public void setState(ServerState state) {
+		this.state = state;
+	}
+
+	public SpreadGroup[] getGroupMembers() {
+		return groupMembers;
+	}
+
+	public void setGroupMembers(SpreadGroup[] groupMembers) {
+		this.groupMembers = groupMembers;
+	}
+
+	public int getLastGroupMemberIndex() {
+		return lastGroupMemberIndex;
+	}
+
+	public void setLastGroupMemberIndex(int lastGroupMemberIndex) {
+		this.lastGroupMemberIndex = lastGroupMemberIndex;
+	}
+
+	@Override
     public String toString() {
     	return this.serverId;
     }
