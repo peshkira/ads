@@ -41,36 +41,8 @@ public class MembershipMessageListener implements AdvancedMessageListener {
 
     @Override
     public void regularMessageReceived(SpreadMessage msg) {
-        // do nothing for now
-        // consider to use different listeners for different types of messages
-        LOG.debug("Message of type {} received", msg.getType());
-        
-        if (msg.getType() == ServerConstants.MSG_GET_SERVER_REFERENCE) {
-            this.server.sendProxyReference(msg.getSender());
-            
-        } else if (msg.getType() == ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE) {
-            try {
-                IServer s = (IServer) msg.getObject();
-                this.server.receiveServerReference(s);
-
-            } catch (SpreadException e) {
-                e.printStackTrace();
-            }
-        } else if (msg.getType() == ServerConstants.MSG_CLIENT_REGISTER) {
-            try {
-                Vector digest = msg.getDigest();
-                ClientMock client = (ClientMock) digest.get(0);
-                RequestUUID uuid = (RequestUUID) digest.get(1);
-                Boolean registered = server.register(client);
-                
-                if (server.getServerId().equals(uuid.getServer())) {
-                    server.getRequests().put(uuid, registered);
-                }
-                
-            } catch (SpreadException e) {
-                e.printStackTrace();
-            }
-        }
+    	// USE ServerRequestMessageListener for server requests
+    	// USE ClientRequestMessageListener for client requests
     }
 
     private void joinMessage(SpreadGroup joined, SpreadMessage msg) {

@@ -13,11 +13,9 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,9 +42,7 @@ public class ReplicatedServer implements IServer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicatedServer.class);
 
-    private List<Game> games;
-    private List<Game> playing;
-    private Set<ClientMock> clients;
+    private ServerState state;
 
     private int rmiPort;
     private int daemonPort;
@@ -69,9 +65,7 @@ public class ReplicatedServer implements IServer {
         this.daemonPort = Integer.parseInt(props.getProperty("spread.daemon.port"));
         this.daemonIP = props.getProperty("spraed.daemon.ip");
 
-        this.games = new ArrayList<Game>();
-        this.clients = new HashSet<ClientMock>();
-        this.playing = new ArrayList<Game>();
+        this.state = new ServerState();
         this.requests = new HashMap<RequestUUID, Object>();
     }
 
@@ -117,7 +111,7 @@ public class ReplicatedServer implements IServer {
         try {
 
             SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
-            message.setType(ServerConstants.MSG_CLIENT_REGISTER);
+            message.setType(ServerConstants.MSG_PLAYER_REGISTER);
             message.digest(client);
             message.digest(uuid);
             message.addGroup(serverGroup);
@@ -138,7 +132,7 @@ public class ReplicatedServer implements IServer {
     }
     
     public boolean register(ClientMock mock) {
-        return this.clients.add(mock);
+        return this.state.addClient(mock);
     }
 
     /**
@@ -148,7 +142,7 @@ public class ReplicatedServer implements IServer {
     @Override
     public boolean unregister(String name, String pass) throws RemoteException {
         ClientMock mock = new ClientMock(name, pass);
-        return this.clients.remove(mock);
+        return this.state.removeClient(mock);
     }
 
     /**
@@ -162,28 +156,28 @@ public class ReplicatedServer implements IServer {
     @Override
     public boolean createGame(String game, String name, String pass) throws RemoteException {
         Game g = new Game(game, name, pass);
-        return this.games.add(g);
+        return this.state.addGame(g);
     }
 
     @Override
     public boolean cancelGame(String game, String name, String pass) throws RemoteException {
         Game g = new Game(game, name, pass);
-        return this.games.remove(g);
+        return this.state.removeGame(g);
     }
 
     @Override
     public Game startGame(String game, String name, String pass) throws RemoteException {
         Game g = new Game(game, name, pass);
 
-        for (Game tmp : this.games) {
+        for (Game tmp : this.state.getGames()) {
             if (tmp.equals(g)) {
                 g = tmp;
                 break;
             }
         }
 
-        this.games.remove(g);
-        this.playing.add(g);
+        this.state.removeGame(g);
+        this.state.addRunningGame(g);
         return g;
     }
 
@@ -325,7 +319,7 @@ public class ReplicatedServer implements IServer {
     private List<Game> anonymizeGames() {
         List<Game> anonymize = new ArrayList<Game>();
 
-        for (Game g : this.games) {
+        for (Game g : this.state.getGames()) {
             Game tmp = new Game(g.getName(), g.getHost(), "");
             tmp.setPlayers(g.getPlayers());
         }

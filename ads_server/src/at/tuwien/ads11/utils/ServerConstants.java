@@ -16,7 +16,7 @@ public final class ServerConstants {
     public static final short MSG_GAME_JOIN = 24;
     public static final short MSG_GAME_LEAVE = 25;
     public static final short MSG_GAME_START = 26;
-    
+        
     private ServerConstants() {
         
     }
