@@ -26,10 +26,13 @@ import spread.SpreadGroup;
 import spread.SpreadMessage;
 import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
+import at.tuwien.ads11.listener.ClientRequestMessageListener;
 import at.tuwien.ads11.listener.MembershipMessageListener;
+import at.tuwien.ads11.listener.ServerRequestMessageListener;
 import at.tuwien.ads11.proxy.ProxyFactory;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
+import at.tuwien.ads11.utils.RMIServerInfo;
 import at.tuwien.ads11.utils.RequestUUID;
 import at.tuwien.ads11.utils.ResultPoller;
 import at.tuwien.ads11.utils.ServerConstants;
@@ -44,30 +47,37 @@ public class ReplicatedServer implements IServer {
 
     private ServerState state;
 
-    private int rmiPort;
+    private RMIServerInfo rmi;
+    
     private int daemonPort;
     private String daemonIP;
     private String serverId;
     private boolean adminsProxy;
 
-    private transient Registry registry;
-    private transient SpreadConnection spreadCon;
+    private Registry registry;
+    private SpreadConnection spreadCon;
     private SpreadGroup serverGroup;
     private SpreadGroup ownGroup;
-    private transient IServer proxy;
-    private transient Map<RequestUUID, Object> requests;
+    private IServer proxy;
+    private Map<RequestUUID, Object> requests;
+
+    private IServer stub;
 
     public ReplicatedServer(Properties props) {
         this.serverId = props.getProperty("server.id");
-
+        
+        String host = props.getProperty("server.rmi.host");
+        int port = Integer.parseInt(props.getProperty("server.rmi.port"));
+        this.rmi = new RMIServerInfo(host, port);
+        
         this.adminsProxy = Boolean.parseBoolean(props.getProperty("server.proxy.administer"));
-        this.rmiPort = Integer.parseInt(props.getProperty("server.rmi.port"));
 
         this.daemonPort = Integer.parseInt(props.getProperty("spread.daemon.port"));
         this.daemonIP = props.getProperty("spraed.daemon.ip");
 
         this.state = new ServerState();
         this.requests = new HashMap<RequestUUID, Object>();
+
     }
 
     public static void main(String args[]) {
@@ -107,6 +117,7 @@ public class ReplicatedServer implements IServer {
      */
     @Override
     public boolean register(String name, String pass) throws RemoteException {
+        LOG.debug("incoming registration call");
         ClientMock client = new ClientMock(name, pass);
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
         try {
@@ -121,18 +132,19 @@ public class ReplicatedServer implements IServer {
         } catch (SpreadException e) {
             throw new RemoteException("An error occured, try with other server");
         }
-        
+
         ResultPoller poller = new ResultPoller(this, 10);
         Boolean result = (Boolean) poller.poll(uuid);
-        
+
         if (result != null) {
             return result;
         } else {
             throw new RemoteException("No response");
         }
     }
-    
+
     public boolean register(ClientMock mock) {
+        LOG.info("registering client");
         return this.state.addClient(mock);
     }
 
@@ -194,7 +206,7 @@ public class ReplicatedServer implements IServer {
         // TODO Auto-generated method stub
         return false;
     }
-    
+
     public Map<RequestUUID, Object> getRequests() {
         return this.requests;
     }
@@ -206,8 +218,9 @@ public class ReplicatedServer implements IServer {
 
             if (adminsProxy) {
                 UnicastRemoteObject.unexportObject(this.proxy, true);
-                UnicastRemoteObject.unexportObject(this.registry, true);
             }
+            UnicastRemoteObject.unexportObject(this, true);
+            UnicastRemoteObject.unexportObject(this.registry, true);
 
         } catch (NoSuchObjectException e) {
             e.printStackTrace();
@@ -224,24 +237,24 @@ public class ReplicatedServer implements IServer {
             SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
             message.addGroup(group);
             message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE);
-            message.setObject(this);
+            message.setObject(this.rmi);
             spreadCon.multicast(message);
         } catch (SpreadException e) {
             e.printStackTrace();
         }
     }
 
-    public void receiveServerReference(IServer server) {
-        this.rebindProxy(new IServer[] { server });
+    public void receiveServerReference(RMIServerInfo info) {
+        this.rebindProxy(info);
     }
 
-    public void askForServerReference() {
+    public void askForServerReference(SpreadGroup joined) {
         if (this.adminsProxy) {
-            LOG.info("Asking for Server References to refresh proxy");
+            LOG.debug("Asking for Server References to refresh proxy");
 
             try {
                 SpreadMessage message = new ServerMessageFactory().getDefaultMessage();
-                message.addGroup(serverGroup);
+                message.addGroup(joined);
                 message.setType(ServerConstants.MSG_GET_SERVER_REFERENCE);
                 spreadCon.multicast(message);
             } catch (SpreadException e) {
@@ -254,22 +267,27 @@ public class ReplicatedServer implements IServer {
     // ========= private ===========
 
     private void start() {
+        getRMIRegistry();
         connectToSpread();
-        if (adminsProxy) {
-            getRMIRegistry();
+        
+        if (this.adminsProxy) {
+            this.askForServerReference(serverGroup);
         }
+
     }
 
     private void connectToSpread() {
         spreadCon = new SpreadConnection();
         spreadCon.add(new MembershipMessageListener(this));
+        spreadCon.add(new ServerRequestMessageListener(this));
+        spreadCon.add(new ClientRequestMessageListener(this));
         serverGroup = new SpreadGroup();
         ownGroup = new SpreadGroup();
 
         try {
             spreadCon.connect(InetAddress.getByName(daemonIP), daemonPort, getServerId(), false, true);
             serverGroup.join(spreadCon, ServerConstants.SPREAD_SERVER_GROUP);
-            ownGroup.join(spreadCon, serverId);	
+            ownGroup.join(spreadCon, serverId);
         } catch (UnknownHostException e) {
             LOG.error("Can not find daemon: {}", daemonIP);
             System.err.println();
@@ -284,7 +302,9 @@ public class ReplicatedServer implements IServer {
 
     private void getRMIRegistry() {
         try {
-            this.registry = LocateRegistry.createRegistry(this.rmiPort);
+            this.registry = LocateRegistry.createRegistry(this.rmi.getPort());
+            this.stub = (IServer) UnicastRemoteObject.exportObject(this, 0);
+            this.registry.rebind(ServerConstants.SERVER_OBJECT, this.stub);
 
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -293,9 +313,9 @@ public class ReplicatedServer implements IServer {
         }
     }
 
-    private void rebindProxy(IServer... servers) {
+    private void rebindProxy(RMIServerInfo... servers) {
         boolean rebind = false;
-        for (IServer server : servers) {
+        for (RMIServerInfo server : servers) {
             if (ProxyFactory.getInstance().addServer(server)) {
                 rebind = true;
             }
@@ -303,7 +323,7 @@ public class ReplicatedServer implements IServer {
 
         try {
             if (rebind) {
-                LOG.info("Rebinding proxy...");
+                LOG.debug("Rebinding proxy...");
 
                 if (this.proxy != null)
                     UnicastRemoteObject.unexportObject(this.proxy, true);
@@ -334,44 +354,11 @@ public class ReplicatedServer implements IServer {
 
     @Override
     public String toString() {
-    	return this.serverId;
+        return this.serverId;
     }
 
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((daemonIP == null) ? 0 : daemonIP.hashCode());
-        result = prime * result + daemonPort;
-        result = prime * result + rmiPort;
-        result = prime * result + ((serverId == null) ? 0 : serverId.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        ReplicatedServer other = (ReplicatedServer) obj;
-        if (daemonIP == null) {
-            if (other.daemonIP != null)
-                return false;
-        } else if (!daemonIP.equals(other.daemonIP))
-            return false;
-        if (daemonPort != other.daemonPort)
-            return false;
-        if (rmiPort != other.rmiPort)
-            return false;
-        if (serverId == null) {
-            if (other.serverId != null)
-                return false;
-        } else if (!serverId.equals(other.serverId))
-            return false;
-        return true;
+    public Object getOwnGroup() {
+        return this.ownGroup;
     }
 
 }

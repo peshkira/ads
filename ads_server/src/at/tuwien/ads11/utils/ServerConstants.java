@@ -3,6 +3,7 @@ package at.tuwien.ads11.utils;
 public final class ServerConstants {
     
     public static final String SPREAD_SERVER_GROUP = "serverGroup";
+    public static final String SERVER_OBJECT = "replicated.server";
 
     public static final short MSG_GET_SERVER_REFERENCE = 10;
     public static final short MSG_GET_SERVER_REFERENCE_RESPONSE = 11;
@@ -16,6 +17,7 @@ public final class ServerConstants {
     public static final short MSG_GAME_JOIN = 24;
     public static final short MSG_GAME_LEAVE = 25;
     public static final short MSG_GAME_START = 26;
+
         
     private ServerConstants() {
         

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import at.tuwien.ads11.remote.IServer;
+import at.tuwien.ads11.utils.RMIServerInfo;
 
 public final class ProxyFactory {
 
@@ -15,7 +16,7 @@ public final class ProxyFactory {
     
     private static ProxyFactory uniqueInstance;
     
-    private Set<IServer> servers;
+    private Set<RMIServerInfo> servers;
     
     public static synchronized ProxyFactory getInstance() {
         if (uniqueInstance == null) {
@@ -34,7 +35,7 @@ public final class ProxyFactory {
         return proxy;
     }
     
-    public boolean addServer(IServer server) {
+    public boolean addServer(RMIServerInfo server) {
         boolean added = servers.add(server);
         if (added) {
             LOG.info("Server {} is now known the to proxy", server.toString());
@@ -44,6 +45,6 @@ public final class ProxyFactory {
     }
     
     private ProxyFactory() {
-        this.servers = new HashSet<IServer>();
+        this.servers = new HashSet<RMIServerInfo>();
     }
 }
