@@ -53,6 +53,7 @@ public class ReplicatedServer implements IServer {
     private transient Registry registry;
     private transient SpreadConnection spreadCon;
     private SpreadGroup serverGroup;
+    private SpreadGroup ownGroup;
     private transient IServer proxy;
     private transient Map<RequestUUID, Object> requests;
 
@@ -263,12 +264,12 @@ public class ReplicatedServer implements IServer {
         spreadCon = new SpreadConnection();
         spreadCon.add(new MembershipMessageListener(this));
         serverGroup = new SpreadGroup();
+        ownGroup = new SpreadGroup();
 
         try {
-
             spreadCon.connect(InetAddress.getByName(daemonIP), daemonPort, getServerId(), false, true);
             serverGroup.join(spreadCon, ServerConstants.SPREAD_SERVER_GROUP);
-
+            ownGroup.join(spreadCon, serverId);	
         } catch (UnknownHostException e) {
             LOG.error("Can not find daemon: {}", daemonIP);
             System.err.println();
@@ -331,8 +332,9 @@ public class ReplicatedServer implements IServer {
         return serverId;
     }
 
+    @Override
     public String toString() {
-        return this.serverId;
+    	return this.serverId;
     }
 
     @Override

@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import spread.AdvancedMessageListener;
+import spread.MembershipInfo;
 import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
@@ -27,15 +28,20 @@ public class MembershipMessageListener implements AdvancedMessageListener {
 
     @Override
     public void membershipMessageReceived(SpreadMessage msg) {
-        SpreadGroup joined = msg.getMembershipInfo().getJoined();
-        SpreadGroup left = msg.getMembershipInfo().getLeft();
+        //SpreadGroup joined = msg.getMembershipInfo().getJoined();
+        
+    	MembershipInfo info = msg.getMembershipInfo();
+    	SpreadGroup left = msg.getMembershipInfo().getLeft();
+        
+        if(isOwnJoinMessage(info))
+        	this.joinMessage(info.getJoined(), msg);
+        //if (joined != null && !msg.isSelfDiscard()) {
+        //    this.joinMessage(joined, msg);
+        //}
 
-        if (joined != null && !msg.isSelfDiscard()) {
-            this.joinMessage(joined, msg);
-        }
-
+        // Why selfdiscard?
         if (left != null && !msg.isSelfDiscard()) {
-            this.leaveMessage(left);
+            this.leaveMessage(info.getLeft());
         }
     }
 
@@ -54,5 +60,11 @@ public class MembershipMessageListener implements AdvancedMessageListener {
 
     private void leaveMessage(SpreadGroup left) {
         LOG.info("{} has left the group", left.toString());
+    }
+    
+    private boolean isOwnJoinMessage(MembershipInfo info) {
+    	if(info.isCausedByJoin() && info.isRegularMembership() == false)
+    		return true;
+    	return false;
     }
 }
