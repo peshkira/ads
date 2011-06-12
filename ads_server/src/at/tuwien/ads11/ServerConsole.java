@@ -44,7 +44,7 @@ public class ServerConsole implements Runnable {
         if (line.equals("exit")) {
             this.run = false;
         } else if (line.equals("help")) {
-            System.out.println("you are on your man.");
+            System.out.println("you are on your own, man.");
         } else if (line.equals("")) {
             //do nothing...
         } else {
