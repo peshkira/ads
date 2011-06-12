@@ -48,7 +48,7 @@ public class ReplicatedServer implements IServer {
     private int daemonPort;
     private String daemonIP;
     private String serverId;
-    private boolean adminsRegistry;
+    private boolean adminsProxy;
 
     private transient Registry registry;
     private transient SpreadConnection spreadCon;
@@ -60,7 +60,7 @@ public class ReplicatedServer implements IServer {
     public ReplicatedServer(Properties props) {
         this.serverId = props.getProperty("server.id");
 
-        this.adminsRegistry = Boolean.parseBoolean(props.getProperty("server.rmi.registry.connect"));
+        this.adminsProxy = Boolean.parseBoolean(props.getProperty("server.proxy.administer"));
         this.rmiPort = Integer.parseInt(props.getProperty("server.rmi.port"));
 
         this.daemonPort = Integer.parseInt(props.getProperty("spread.daemon.port"));
@@ -204,7 +204,7 @@ public class ReplicatedServer implements IServer {
 
             serverGroup.leave();
 
-            if (adminsRegistry) {
+            if (adminsProxy) {
                 UnicastRemoteObject.unexportObject(this.proxy, true);
                 UnicastRemoteObject.unexportObject(this.registry, true);
             }
@@ -236,7 +236,7 @@ public class ReplicatedServer implements IServer {
     }
 
     public void askForServerReference() {
-        if (this.adminsRegistry) {
+        if (this.adminsProxy) {
             LOG.info("Asking for Server References to refresh proxy");
 
             try {
@@ -255,7 +255,7 @@ public class ReplicatedServer implements IServer {
 
     private void start() {
         connectToSpread();
-        if (adminsRegistry) {
+        if (adminsProxy) {
             getRMIRegistry();
         }
     }
