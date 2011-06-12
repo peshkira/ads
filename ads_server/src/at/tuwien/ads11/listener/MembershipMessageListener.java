@@ -1,26 +1,18 @@
 package at.tuwien.ads11.listener;
 
-import java.util.Vector;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import spread.AdvancedMessageListener;
 import spread.MembershipInfo;
-import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
 import at.tuwien.ads11.ReplicatedServer;
-import at.tuwien.ads11.ServerState;
-import at.tuwien.ads11.common.ClientMock;
-import at.tuwien.ads11.remote.IServer;
-import at.tuwien.ads11.utils.RequestUUID;
-import at.tuwien.ads11.utils.ServerConstants;
 
 public class MembershipMessageListener implements AdvancedMessageListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(MembershipMessageListener.class);
-    
+
     private ReplicatedServer server;
 
     public MembershipMessageListener(ReplicatedServer server) {
@@ -29,50 +21,50 @@ public class MembershipMessageListener implements AdvancedMessageListener {
 
     @Override
     public void membershipMessageReceived(SpreadMessage msg) {
-        //SpreadGroup joined = msg.getMembershipInfo().getJoined();
-        
-    	MembershipInfo info = msg.getMembershipInfo();
-    	SpreadGroup left = msg.getMembershipInfo().getLeft();
-        
-        if(isOwnJoinMessage(info))
-        	this.synchronizeState(info.getJoined(), msg);
-        //if (joined != null && !msg.isSelfDiscard()) {
-        //    this.joinMessage(joined, msg);
-        //}
+        MembershipInfo info = msg.getMembershipInfo();
+        SpreadGroup left = msg.getMembershipInfo().getLeft();
+
+        // this does not work properly
+        // I changed the methdo and flipped the condition...
+        if (!isOwnGroupJoinMessage(info) && info.getJoined() != null)
+            this.joinMessage(info.getJoined(), msg);
 
         // Why selfdiscard?
-        if (left != null && !msg.isSelfDiscard()) {
+        // because I wasn't sure what selfdiscard was for at
+        // that time.. I am removing it
+        if (left != null) {
             this.leaveMessage(info.getLeft());
         }
     }
 
     @Override
     public void regularMessageReceived(SpreadMessage msg) {
-    	// USE ServerRequestMessageListener for server requests
-    	// USE ClientRequestMessageListener for client requests
+        // USE ServerRequestMessageListener for server requests
+        // USE ClientRequestMessageListener for client requests
     }
 
-    private void synchronizeState(SpreadGroup joined, SpreadMessage msg) {
+    private void joinMessage(SpreadGroup joined, SpreadMessage msg) {
         LOG.info("{} has joined the group", joined.toString());
         // TODO synchornize the new guy...
-        SpreadGroup[] members = msg.getMembershipInfo().getMembers();
-        if(members.length < 2)
-        	server.setState(new ServerState());
-        else {
-        	server.setGroupMembers(members);
-        	server.setLastGroupMemberIndex(0);
-        	
-        }	
-        this.server.askForServerReference();
+
+        this.server.askForServerReference(joined);
     }
 
     private void leaveMessage(SpreadGroup left) {
         LOG.info("{} has left the group", left.toString());
     }
-    
-    private boolean isOwnJoinMessage(MembershipInfo info) {
-    	if(info.isCausedByJoin() && info.isRegularMembership() == false)
-    		return true;
-    	return false;
+
+    private boolean isOwnGroupJoinMessage(MembershipInfo info) {
+        // why == false
+        // and this method always returns false...
+        // if (info.isCausedByJoin() && info.isRegularMembership() == false) {
+        // return true;
+        // }
+        // return false;
+        if (info.isCausedByJoin() && info.getGroup().equals(server.getOwnGroup())) {
+            return true;
+        }
+
+        return false;
     }
 }

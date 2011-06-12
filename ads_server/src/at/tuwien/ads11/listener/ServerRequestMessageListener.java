@@ -1,16 +1,14 @@
 package at.tuwien.ads11.listener;
 
-import javax.print.attribute.standard.Severity;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import at.tuwien.ads11.ReplicatedServer;
-import at.tuwien.ads11.remote.IServer;
-import at.tuwien.ads11.utils.ServerConstants;
 import spread.BasicMessageListener;
 import spread.SpreadException;
 import spread.SpreadMessage;
+import at.tuwien.ads11.ReplicatedServer;
+import at.tuwien.ads11.utils.RMIServerInfo;
+import at.tuwien.ads11.utils.ServerConstants;
 
 public class ServerRequestMessageListener implements BasicMessageListener {
 
@@ -28,20 +26,23 @@ public class ServerRequestMessageListener implements BasicMessageListener {
 		switch(msg.getType()) {
 		case ServerConstants.MSG_GET_SERVER_REFERENCE:
 			this.server.sendProxyReference(msg.getSender());
+			
+			break;
 		case ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE:
 			try {
-				IServer s = (IServer) msg.getObject();
+				RMIServerInfo s = (RMIServerInfo) msg.getObject();
 	            this.server.receiveServerReference(s);
 
 	        } catch (SpreadException e) {
 	            e.printStackTrace();
 	        }
+	        break;
 		case ServerConstants.MSG_GET_SERVER_STATE:
-			;
+			break;
 		case ServerConstants.MSG_GET_SERVER_STATE_RESPONSE:
-			;
+		    break;
 		default:
-			;
+			break;
 		}
 	}
 }

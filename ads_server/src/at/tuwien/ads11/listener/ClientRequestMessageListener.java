@@ -43,20 +43,22 @@ public class ClientRequestMessageListener implements BasicMessageListener {
             } catch (SpreadException e) {
                 e.printStackTrace();
             }
+            
+            break;
 		case ServerConstants.MSG_PLAYER_UNREGISTER:
-			;
+			break;
 		case ServerConstants.MSG_GAME_CREATE:
-			;
+			break;
 		case ServerConstants.MSG_GAME_JOIN:
-			;
+			break;
 		case ServerConstants.MSG_GAME_LEAVE:
-			;
+			break;
 		case ServerConstants.MSG_GAME_START:
-			;
+			break;
 		case ServerConstants.MSG_GAME_CANCEL:
-			;
+			break;
 		default:
-			;
+			break;
 		}
 		
 		
