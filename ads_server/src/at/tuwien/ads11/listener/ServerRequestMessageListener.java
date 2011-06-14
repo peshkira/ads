@@ -1,8 +1,5 @@
 package at.tuwien.ads11.listener;
 
-import java.util.Collections;
-import java.util.LinkedList;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

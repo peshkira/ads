@@ -1,7 +1,5 @@
 package at.tuwien.ads11.listener;
 
-import java.security.acl.Owner;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +9,6 @@ import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
 import at.tuwien.ads11.ReplicatedServer;
-import at.tuwien.ads11.ServerState;
 import at.tuwien.ads11.utils.ServerConstants;
 import at.tuwien.ads11.utils.ServerMessageFactory;
 
@@ -32,14 +29,17 @@ public class MembershipMessageListener implements AdvancedMessageListener {
 
         // this does not work properly
         // I changed the method and flipped the condition...
-        if (!isOwnGroupJoinMessage(info) && info.getJoined() != null)
-            this.synchronizeState(info.getJoined(), msg);
-
+        //if (!isOwnGroupJoinMessage(info) && info.getJoined() != null)
+        //    this.synchronizeState(info.getJoined(), msg);
+        if (isSelfJoinMessage(info))
+        	synchronizeState(info);
+        
+        
         // Why selfdiscard?
         // because I wasn't sure what selfdiscard was for at
         // that time.. I am removing it
         if (left != null) {
-            this.leaveMessage(info.getLeft());
+            this.leaveMessage(left);
         }
     }
 
@@ -49,16 +49,17 @@ public class MembershipMessageListener implements AdvancedMessageListener {
         // USE ClientRequestMessageListener for client requests
     }
 
-    private void synchronizeState(SpreadGroup joined, SpreadMessage msg) {
-        LOG.info("{} has joined the group", joined.toString());
-        SpreadGroup[] members = msg.getMembershipInfo().getMembers();
-        if(members.length < 2)
+    private void synchronizeState(MembershipInfo info) {
+        LOG.info("{} has joined the group", info.getJoined().toString());
+        SpreadGroup[] members = info.getMembers();
+        if(members.length < 2) {
         	server.getUpToDate().set(true);
-        else {
+        	LOG.info("No other servers to get state from.");
+        } else {
         	server.setGroupMembers(members);
         	askForState(0);
         }	
-        this.server.askForServerReference(joined);
+        this.server.askForServerReference(info.getJoined());
     }
     
     // TODO: some meaningful exception handling
@@ -67,7 +68,8 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     	if(memberIndex > server.getGroupMembers().size()) {
     		try {
 				server.rejoinServerGroup();
-			} catch (SpreadException e) {
+				LOG.debug("No group members left to get state from, rejoining server group.");
+    		} catch (SpreadException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -76,6 +78,7 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     	try {
 			SpreadMessage request = ServerMessageFactory.getInstance().createSafeMessage(ServerConstants.MSG_GET_SERVER_STATE, null, server.getOwnGroup(), server.getGroupMembers().get(memberIndex));
 			server.sendMsg(request);
+			LOG.debug("Requesting state from {}", server.getGroupMembers().get(memberIndex));
     	} catch (SpreadException e) {
 			// TODO if exception on send -> go to next member
 			e.printStackTrace();
@@ -87,18 +90,11 @@ public class MembershipMessageListener implements AdvancedMessageListener {
         if(!server.getUpToDate().get() && left.equals(server.getGroupMembers().get(server.getLastGroupMemberIndex())))
         	askForState(server.getLastGroupMemberIndex() + 1);
     }
-
-    private boolean isOwnGroupJoinMessage(MembershipInfo info) {
-        // why == false
-        // and this method always returns false...
-        // if (info.isCausedByJoin() && info.isRegularMembership() == false) {
-        // return true;
-        // }
-        // return false;
-        if (info.isCausedByJoin() && info.getGroup().equals(server.getOwnGroup())) {
-            return true;
-        }
-
-        return false;
+   
+    private boolean isSelfJoinMessage(MembershipInfo info)
+    {
+    	if(info.isCausedByJoin() && info.getGroup().equals(server.getServerGroup()) && info.getJoined().toString().startsWith(server.getServerId(), 1))
+    		return true;
+    	return false;
     }
 }
