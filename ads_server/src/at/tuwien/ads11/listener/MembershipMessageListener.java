@@ -26,13 +26,17 @@ public class MembershipMessageListener implements AdvancedMessageListener {
     public void membershipMessageReceived(SpreadMessage msg) {
         MembershipInfo info = msg.getMembershipInfo();
         SpreadGroup left = msg.getMembershipInfo().getLeft();
+        SpreadGroup joined = msg.getMembershipInfo().getJoined();
 
         // this does not work properly
         // I changed the method and flipped the condition...
         //if (!isOwnGroupJoinMessage(info) && info.getJoined() != null)
         //    this.synchronizeState(info.getJoined(), msg);
-        if (isSelfJoinMessage(info))
+        if (isSelfJoinMessage(info)) {
         	synchronizeState(info);
+        } else if (joined != null) { // on each join
+            this.server.askForServerReference(joined);
+        }
         
         
         // Why selfdiscard?
@@ -59,7 +63,6 @@ public class MembershipMessageListener implements AdvancedMessageListener {
         	server.setGroupMembers(members);
         	askForState(0);
         }	
-        this.server.askForServerReference(info.getJoined());
     }
     
     // TODO: some meaningful exception handling

@@ -461,11 +461,6 @@ public class ReplicatedServer implements IServer {
     private void start() {
         getRMIRegistry();
         connectToSpread();
-
-        if (this.adminsProxy) {
-            this.askForServerReference(serverGroup);
-        }
-
     }
 
     private void connectToSpread() {
