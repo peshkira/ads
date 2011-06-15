@@ -43,18 +43,7 @@ public class ServerRequestMessageListener implements BasicMessageListener {
             }
             break;
         case ServerConstants.MSG_GET_SERVER_STATE:
-            if (count <= 1) {
-                processServerStateRequest(msg);
-            } else {
-                try {
-                    if (!msg.getSender().toString().startsWith(server.getServerId(), 1)) {
-                        this.server.getServerGroup().leave();
-                    }
-                } catch (SpreadException e) {
-                    e.printStackTrace();
-                }
-            }
-            count++;
+            processServerStateRequest(msg);
             break;
         case ServerConstants.MSG_GET_SERVER_STATE_RESPONSE:
             processServerStateReponse(msg);
@@ -65,7 +54,8 @@ public class ServerRequestMessageListener implements BasicMessageListener {
     }
 
     private void processServerStateRequest(SpreadMessage msg) {
-        if (msg.getSender().equals(server.getOwnGroup())) {
+        // Don't process own get state requests
+    	if (msg.getSender().toString().startsWith(server.getOwnGroup().toString(), 1)) {
             server.getBufferMsgs().set(true);
         } else
             try {
