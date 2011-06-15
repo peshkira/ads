@@ -77,7 +77,7 @@ public class MembershipMessageListener implements AdvancedMessageListener {
 
     // TODO: some meaningful exception handling
     private void askForState(int memberIndex) {
-        server.setLastGroupMemberIndex(memberIndex);
+    	server.setLastGroupMemberIndex(memberIndex);
         if (memberIndex > server.getGroupMembers().size()) {
             try {
                 server.rejoinServerGroup();

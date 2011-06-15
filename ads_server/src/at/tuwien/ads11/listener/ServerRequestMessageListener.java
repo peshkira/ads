@@ -76,13 +76,14 @@ public class ServerRequestMessageListener implements BasicMessageListener {
                 e.printStackTrace();
             }
     }
-
-    private void processServerStateReponse(SpreadMessage msg) {
-        try {
-            server.setState((ServerState) msg.getObject());
-        } catch (SpreadException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
+	
+	private void processServerStateReponse(SpreadMessage msg) {
+		LOG.debug("State received from {}", msg.getSender());
+		try {
+			server.setState((ServerState)msg.getObject());
+		} catch (SpreadException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }
