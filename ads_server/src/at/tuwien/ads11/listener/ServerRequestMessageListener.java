@@ -1,5 +1,7 @@
 package at.tuwien.ads11.listener;
 
+import java.util.Random;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,60 +16,73 @@ import at.tuwien.ads11.utils.ServerMessageFactory;
 
 public class ServerRequestMessageListener implements BasicMessageListener {
 
-	private static final Logger LOG = LoggerFactory.getLogger(ServerRequestMessageListener.class);
-	private ReplicatedServer server;
-	
-	public ServerRequestMessageListener(ReplicatedServer server) {
-		this.server = server;
-	}
-	
-	@Override
-	public void messageReceived(SpreadMessage msg) {
-		LOG.debug("Message of type {} received", msg.getType());
-		switch(msg.getType()) {
-		case ServerConstants.MSG_GET_SERVER_REFERENCE:
-			this.server.sendProxyReference(msg.getSender());
-			
-			break;
-		case ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE:
-			try {
-				RMIServerInfo s = (RMIServerInfo) msg.getObject();
-	            this.server.receiveServerReference(s);
+    private static final Logger LOG = LoggerFactory.getLogger(ServerRequestMessageListener.class);
+    private ReplicatedServer server;
 
-	        } catch (SpreadException e) {
-	            e.printStackTrace();
-	        }
-	        break;
-		case ServerConstants.MSG_GET_SERVER_STATE:
-			processServerStateRequest(msg);
-			break;
-		case ServerConstants.MSG_GET_SERVER_STATE_RESPONSE:
-		    processServerStateReponse(msg);
-			break;
-		default:
-			break;
-		}
-	}
-	
-	private void processServerStateRequest(SpreadMessage msg) {
-		if(msg.getSender().equals(server.getOwnGroup()))
-		{
-			server.getBufferMsgs().set(true);
-		} else
-			try {
-				server.sendMsg(ServerMessageFactory.getInstance().createSafeMessage(ServerConstants.MSG_GET_SERVER_STATE_RESPONSE, server.getState(), msg.getSender()));
-			} catch (SpreadException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-	}
-	
-	private void processServerStateReponse(SpreadMessage msg) {
-		try {
-			server.setState((ServerState)msg.getObject());
-		} catch (SpreadException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+    private int count = 1;
+
+    public ServerRequestMessageListener(ReplicatedServer server) {
+        this.server = server;
+    }
+
+    @Override
+    public void messageReceived(SpreadMessage msg) {
+        LOG.debug("Message of type {} received", msg.getType());
+        switch (msg.getType()) {
+        case ServerConstants.MSG_GET_SERVER_REFERENCE:
+            this.server.sendProxyReference(msg.getSender());
+
+            break;
+        case ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE:
+            try {
+                RMIServerInfo s = (RMIServerInfo) msg.getObject();
+                this.server.receiveServerReference(s);
+
+            } catch (SpreadException e) {
+                e.printStackTrace();
+            }
+            break;
+        case ServerConstants.MSG_GET_SERVER_STATE:
+            if (count <= 1) {
+                processServerStateRequest(msg);
+            } else {
+                try {
+                    if (!msg.getSender().toString().startsWith(server.getServerId(), 1)) {
+                        this.server.getServerGroup().leave();
+                    }
+                } catch (SpreadException e) {
+                    e.printStackTrace();
+                }
+            }
+            count++;
+            break;
+        case ServerConstants.MSG_GET_SERVER_STATE_RESPONSE:
+            processServerStateReponse(msg);
+            break;
+        default:
+            break;
+        }
+    }
+
+    private void processServerStateRequest(SpreadMessage msg) {
+        if (msg.getSender().equals(server.getOwnGroup())) {
+            server.getBufferMsgs().set(true);
+        } else
+            try {
+                server.sendMsg(ServerMessageFactory.getInstance().createSafeMessage(
+                        ServerConstants.MSG_GET_SERVER_STATE_RESPONSE, server.getState(), msg.getSender()));
+            } catch (SpreadException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+    }
+
+    private void processServerStateReponse(SpreadMessage msg) {
+        try {
+            server.setState((ServerState) msg.getObject());
+        } catch (SpreadException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 }

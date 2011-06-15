@@ -582,8 +582,11 @@ public class ReplicatedServer implements IServer {
 	public void setGroupMembers(SpreadGroup[] groupMembers) {
 		this.groupMembers = new LinkedList<SpreadGroup>();
 		for(SpreadGroup group : groupMembers) {
-			if(group.equals(ownGroup))
+		    LOG.info("GROUP: {}, OWNGROUP: {}", group.toString(), ownGroup.toString());
+			if(group.toString().startsWith(ownGroup.toString(), 1)) {
+			    LOG.debug("FILTERED {}", group.toString());
 				continue;
+			}
 			else
 				this.groupMembers.add(group);
 		}
