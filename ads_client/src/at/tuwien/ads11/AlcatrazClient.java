@@ -102,6 +102,7 @@ public class AlcatrazClient implements IClient {
 
         if (numId < 0 || numId > 3) {
             // TODO error handling
+            LOG.error("numId is out of Range");
         }
 
         this.initRemoteStubs(game.getPlayers());
