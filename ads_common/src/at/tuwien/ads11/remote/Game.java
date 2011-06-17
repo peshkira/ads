@@ -57,11 +57,12 @@ public class Game implements Serializable {
         return pass;
     }
     
-    public boolean containsPlayerName(String name) {
+    public ClientMock containsPlayerName(String name) {
     	for(ClientMock player : players)
     		if(player.getName().equals(name))
-    			return true;
-    	return false;
+    			return player;
+    	
+    	return null;
     }
 
     @Override

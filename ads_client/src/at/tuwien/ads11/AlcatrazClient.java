@@ -5,8 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
+import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -42,6 +46,10 @@ public class AlcatrazClient implements IClient {
 
     private List<IClient> clientStubCache;
     private List<Movement> history;
+
+    private Registry registry;
+
+    private IClient stub;
 
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
@@ -100,6 +108,7 @@ public class AlcatrazClient implements IClient {
         this.alcatraz.init(numPlayers, numId);
         this.alcatraz.addMoveListener(new ClientMoveListener(this));
         this.alcatraz.start();
+        this.alcatraz.showWindow();
 
         // is there something else to do here?
         // check if you are the first one and move....?
@@ -123,7 +132,12 @@ public class AlcatrazClient implements IClient {
 
     public void shutdown() {
         this.alcatraz.disposeWindow();
-
+        try {
+            UnicastRemoteObject.unexportObject(this.stub, true);
+            UnicastRemoteObject.unexportObject(this.registry, true);
+        } catch (NoSuchObjectException e) {
+            e.printStackTrace();
+        }
     }
 
     public void register() throws RemoteException {
@@ -256,12 +270,23 @@ public class AlcatrazClient implements IClient {
 
     private void start() {
         this.getServerProxy();
-        // something else?
+        this.startRMIRegistry();
+    }
+
+    private void startRMIRegistry() {
+        try {
+            this.registry = LocateRegistry.createRegistry(this.port);
+            this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0);
+            this.registry.rebind(Constants.REMOTE_CLIENT_OBJECT_NAME, this.stub);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        
     }
 
     private void getServerProxy() {
         try {
-            this.server = (IServer) Naming.lookup("rmi://" + "localhost" + ":" + 1234 + "/"
+            this.server = (IServer) Naming.lookup("rmi://" + this.proxyIp + ":" + this.proxyPort + "/"
                     + Constants.REMOTE_SERVER_OBJECT_NAME);
         } catch (MalformedURLException e) {
             LOG.error("An error occurred, the server uri seem to be malformed. Cause: {}", e.getMessage());

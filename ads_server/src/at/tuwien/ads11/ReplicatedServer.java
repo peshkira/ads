@@ -208,7 +208,6 @@ public class ReplicatedServer implements IServer {
         LOG.debug("incoming create game call");
 
         Game g = new Game(game, name, pass);
-        g.getPlayers().add(new ClientMock(name, pass));
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
         try {
@@ -237,7 +236,12 @@ public class ReplicatedServer implements IServer {
     public boolean createGame(Game g) {
         ClientMock c = new ClientMock(g.getHost(), g.getPass());
         if (this.state.getClients().contains(c) && c.getPass().equals(g.getPass())) {
-            return this.state.addGame(g);
+            for (ClientMock tmp : this.state.getClients()) {
+                if (tmp.equals(c)) {
+                    g.getPlayers().add(tmp);
+                    return this.state.addGame(g);
+                }
+            }
         }
 
         // if client not registered
@@ -366,7 +370,8 @@ public class ReplicatedServer implements IServer {
 
         if (this.state.getClients().contains(c)) {
             for (Game tmp : this.state.getGames()) {
-                if (tmp.getName().equals(g.getName()) && !g.containsPlayerName(c.getHost())) {
+                ClientMock client = tmp.containsPlayerName(c.getName());
+                if (tmp.getName().equals(g.getName()) && client == null) {
                 	return tmp.getPlayers().add(c);
                 }
             }
@@ -377,8 +382,32 @@ public class ReplicatedServer implements IServer {
 
     @Override
     public synchronized boolean leaveGame(String game, String name, String pass) throws RemoteException {
-        // TODO Auto-generated method stub
-        return false;
+        LOG.debug("incoming leave game call");
+
+        Game g = new Game(game, name, pass);
+        RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
+
+        try {
+            SpreadMessage message = ServerMessageFactory.getInstance().getDefaultMessage();
+            message.setType(ServerConstants.MSG_GAME_LEAVE);
+            message.digest(g);
+            message.digest(uuid);
+            message.addGroup(serverGroup);
+            this.spreadCon.multicast(message);
+
+        } catch (SpreadException e) {
+            throw new RemoteException("An error occured, try with other server");
+        }
+
+        ResultPoller poller = new ResultPoller(this, 10);
+        Boolean result = (Boolean) poller.poll(uuid);
+        this.requests.remove(uuid); // not needed anymore
+
+        if (result != null) {
+            return result;
+        } else {
+            throw new RemoteException("No response");
+        }
     }
 
     public Boolean leaveGame(Game g) {
@@ -546,7 +575,10 @@ public class ReplicatedServer implements IServer {
     private Game anonymizeGame(Game tmp) {
         Game anonym = new Game(tmp.getName(), tmp.getHost(), "");
         for (ClientMock c : tmp.getPlayers()) {
-            anonym.getPlayers().add(new ClientMock(c.getName(), ""));
+            ClientMock tmpC = new ClientMock(c.getName(), "");
+            tmpC.setHost(c.getHost());
+            tmpC.setPort(c.getPort());
+            anonym.getPlayers().add(tmpC);
         }
 
         return anonym;
