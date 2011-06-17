@@ -24,6 +24,7 @@ public class ClientMoveListener implements MoveListener {
     @Override
     public void moveDone(Player player, Prisoner prisoner, int rowOrCol, int row, int col) {
         Movement m = new Movement(player, prisoner, rowOrCol, row, col);
+        client.getLocalHistory().add(m);
         Game g = client.getGame();
         
        //call doMove on all others..
