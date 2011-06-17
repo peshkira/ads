@@ -19,7 +19,7 @@ public class ClientMoveListener implements MoveListener {
 
     @Override
     public void gameWon(Player player) {
-        // TODO Auto-generated method stub
+        // TODO set all cleint flags to default
 
     }
 
