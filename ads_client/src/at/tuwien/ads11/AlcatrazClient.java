@@ -24,7 +24,6 @@ import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 import at.tuwien.ads11.remote.Movement;
 
-
 public class AlcatrazClient implements IClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(AlcatrazClient.class);
@@ -40,11 +39,9 @@ public class AlcatrazClient implements IClient {
 
     private int port;
     private int proxyPort;
-    
+
     private List<IClient> clientStubCache;
     private List<Movement> history;
-    
-    private Game game;
 
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
@@ -54,7 +51,7 @@ public class AlcatrazClient implements IClient {
         this.port = Integer.parseInt(props.getProperty("client.port"));
         this.proxyIp = props.getProperty("proxy.ip");
         this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
-        this.clientStubCache = new LinkedList<IClient>();
+        this.setClientStubCache(new LinkedList<IClient>());
         this.history = new ArrayList<Movement>();
     }
 
@@ -85,7 +82,6 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void startGame(Game game) throws RemoteException {
-        this.game = game;
         int numPlayers = game.getPlayers().size();
         int numId = -1;
         ClientMock tmp = new ClientMock(this.username, this.password);
@@ -99,6 +95,8 @@ public class AlcatrazClient implements IClient {
             // TODO error handling
         }
 
+        this.initRemoteStubs(game.getPlayers());
+        
         this.alcatraz.init(numPlayers, numId);
         this.alcatraz.addMoveListener(new ClientMoveListener(this));
         this.alcatraz.start();
@@ -111,14 +109,16 @@ public class AlcatrazClient implements IClient {
     public void doMove(Movement m) throws RemoteException {
         this.alcatraz.doMove(m.getPlayer(), m.getPrisoner(), m.getRowOrCol(), m.getRow(), m.getCol());
         this.history.add(m);
-        
 
     }
 
     @Override
     public List<Movement> getHistory() throws RemoteException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.history;
+    }
+    
+    public List<Movement> getLocalHistory() {
+        return this.history;
     }
 
     public void shutdown() {
@@ -195,45 +195,66 @@ public class AlcatrazClient implements IClient {
     // Server
     public void startGame(String name) throws RemoteException {
         Game game = this.server.startGame(name, this.username, this.password);
-        List<ClientMock> unreachableClients = new ArrayList<ClientMock>();
         if (game != null) {
+            this.initRemoteStubs(game.getPlayers());
+            for (IClient c : this.getClientStubCache()) {
+                callStartGameOnClient(c, game);
+            }
             System.out.println("Game " + name + " has been successfully started.");
-            boolean started;
-            for (ClientMock client : game.getPlayers()) {
-                // IF self, jump over to next client
-            	if(client.getName().equals(this.username))
-            		continue;
-            	started = callStartGameOnClient(client, game);
-                if (!started)
-                	unreachableClients.add(client);
-            }
-            
-            while(!unreachableClients.isEmpty()) {
-            	Iterator<ClientMock> it = unreachableClients.iterator();
-            	while(it.hasNext()) {
-            		if(callStartGameOnClient(it.next(), game));
-            			it.remove();
-            	}
-            }
-            	
         } else
             System.out.println("Game " + name + " could not be started.");
     }
-    
-    private boolean callStartGameOnClient(ClientMock client, Game game) {
-    	try {
-			IClient clientStub = (IClient) Naming.lookup("rmi://" + client.getHost() + ":" + client.getPort() + "/"
-			        + Constants.REMOTE_CLIENT_OBJECT_NAME);
-			clientStub.startGame(game);
-			clientStubCache.add(clientStub);
-			return true;
-		} catch (Exception e) {
-			LOG.debug("Startgame failed on client: " + client.getName());
-			return false;
-		}
-	}
 
-	private void start() {
+    private void initRemoteStubs(List<ClientMock> clients) {
+        List<ClientMock> unreachableClients = new ArrayList<ClientMock>();
+        for (ClientMock client : clients) {
+            if (client.getName().equals(this.username))
+                continue;
+            else {
+                try {
+                    IClient clientStub = this.getStub(client);
+                    getClientStubCache().add(clientStub);
+                } catch (Exception e) {
+                    unreachableClients.add(client);
+                }
+
+            }
+
+            while (!unreachableClients.isEmpty()) {
+                Iterator<ClientMock> it = unreachableClients.iterator();
+                while (it.hasNext()) {
+                    try {
+                        IClient stub = this.getStub(it.next());
+                        if (stub != null) {
+                            it.remove();
+                            getClientStubCache().add(stub);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+        }
+    }
+
+    private IClient getStub(ClientMock client) throws Exception {
+        IClient clientStub = (IClient) Naming.lookup("rmi://" + client.getHost() + ":" + client.getPort() + "/"
+                + Constants.REMOTE_CLIENT_OBJECT_NAME);
+
+        return clientStub;
+    }
+
+    private boolean callStartGameOnClient(IClient clientStub, Game game) {
+        try {
+            clientStub.startGame(game);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void start() {
         this.getServerProxy();
         // something else?
     }
@@ -251,11 +272,11 @@ public class AlcatrazClient implements IClient {
         }
     }
 
-    public void setGame(Game game) {
-        this.game = game;
+    public void setClientStubCache(List<IClient> clientStubCache) {
+        this.clientStubCache = clientStubCache;
     }
 
-    public Game getGame() {
-        return game;
+    public List<IClient> getClientStubCache() {
+        return clientStubCache;
     }
 }

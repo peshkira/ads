@@ -1,10 +1,12 @@
 package at.tuwien.ads11.listener;
 
+import java.rmi.RemoteException;
+
 import at.falb.games.alcatraz.api.MoveListener;
 import at.falb.games.alcatraz.api.Player;
 import at.falb.games.alcatraz.api.Prisoner;
 import at.tuwien.ads11.AlcatrazClient;
-import at.tuwien.ads11.remote.Game;
+import at.tuwien.ads11.IClient;
 import at.tuwien.ads11.remote.Movement;
 
 public class ClientMoveListener implements MoveListener {
@@ -25,9 +27,14 @@ public class ClientMoveListener implements MoveListener {
     public void moveDone(Player player, Prisoner prisoner, int rowOrCol, int row, int col) {
         Movement m = new Movement(player, prisoner, rowOrCol, row, col);
         client.getLocalHistory().add(m);
-        Game g = client.getGame();
         
-       //call doMove on all others..
+        for (IClient c : client.getClientStubCache()) {
+            try {
+                c.doMove(m);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
         
 
     }
