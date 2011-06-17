@@ -367,15 +367,25 @@ public class ReplicatedServer implements IServer {
 
     public boolean joinGame(Game g) {
         ClientMock c = new ClientMock(g.getHost(), g.getPass());
-
-        if (this.state.getClients().contains(c)) {
-            for (Game tmp : this.state.getGames()) {
-                ClientMock client = tmp.containsPlayerName(c.getName());
-                if (tmp.getName().equals(g.getName()) && client == null) {
-                	return tmp.getPlayers().add(c);
-                }
+        ClientMock tmp = null;
+        for (ClientMock m : this.state.getClients()) {
+            if (m.equals(c)) {
+                tmp = m;
+                break;
             }
         }
+        
+        if (tmp == null) {
+            return false; // or throw exception
+        }
+        
+        for (Game game : this.state.getGames()) {
+            ClientMock client = game.containsPlayerName(tmp.getName());
+            if (game.getName().equals(g.getName()) && client == null) {
+                return game.getPlayers().add(tmp);
+            }
+        }
+
 
         return false;
     }

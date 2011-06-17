@@ -259,12 +259,12 @@ public class AlcatrazClient implements IClient {
         return clientStub;
     }
 
-    private boolean callStartGameOnClient(IClient clientStub, Game game) {
+    private void callStartGameOnClient(IClient clientStub, Game game) {
         try {
             clientStub.startGame(game);
-            return true;
         } catch (Exception e) {
-            return false;
+            LOG.error("ERROR {}", e.getMessage());
+            e.printStackTrace();
         }
     }
 
