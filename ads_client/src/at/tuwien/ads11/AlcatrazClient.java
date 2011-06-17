@@ -143,7 +143,17 @@ public class AlcatrazClient implements IClient {
     }
 
     public void createGame(String name) {
-
+        try {
+            boolean created = this.server.createGame(name, this.username, this.password);
+            if (created) {
+                System.out.println("You created a game successfully. Check out the games in order to see if somebody joined");
+            } else {
+                System.out.println("The Game could not be created");
+            }
+        } catch (RemoteException e) {
+            LOG.error("An error occurred. The server was unreachable. Cause:{}", e.getMessage());
+            System.out.println("An error occurred. The server was unreachable. Please try again later.");
+        }
     }
 
     public void cancelGame(String name) {
