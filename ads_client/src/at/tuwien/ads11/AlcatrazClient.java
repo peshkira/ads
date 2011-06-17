@@ -191,7 +191,10 @@ public class AlcatrazClient implements IClient {
             System.out.println("Game " + name + " has been successfully started.");
             boolean started;
             for (ClientMock client : game.getPlayers()) {
-                started = callStartGameOnClient(client, game);
+                // IF self, jump over to next client
+            	if(client.getName().equals(this.username))
+            		continue;
+            	started = callStartGameOnClient(client, game);
                 if (!started)
                 	unreachableClients.add(client);
             }
