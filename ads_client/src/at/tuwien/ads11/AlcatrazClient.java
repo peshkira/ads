@@ -14,181 +14,186 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import at.falb.games.alcatraz.api.Alcatraz;
+import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 import at.tuwien.ads11.remote.Movement;
 
-
-
 public class AlcatrazClient implements IClient {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(AlcatrazClient.class);
+
+	private static final Logger LOG = LoggerFactory
+			.getLogger(AlcatrazClient.class);
 
 	private Alcatraz alcatraz;
-	
+
 	private IServer server;
-    
-    private String username;
-    private String password;
-    private String ip;
-    private String proxyIp;
-    
-    private int port;
-    private int proxyPort;
-    
-    public AlcatrazClient(Properties props) {
-        this.alcatraz = new Alcatraz();
-        this.username = props.getProperty("client.username");
-        this.password = props.getProperty("client.password");
-        this.ip = props.getProperty("client.ip");
-        this.port = Integer.parseInt(props.getProperty("client.port"));
-        this.proxyIp = props.getProperty("proxy.ip");
-        this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
-    }
 
-    public static void main(String args[]) {
-        if (args == null || args.length != 1) {
-            System.out.println("Invalid argument count - provide name of the config file.");
-            System.exit(1);
-        }
+	private String username;
+	private String password;
+	private String ip;
+	private String proxyIp;
 
-        Properties props = new Properties();
-        try {
-            props.load(new FileInputStream(args[0]));
-        } catch (FileNotFoundException e) {
-            LOG.error("Config file: {} not found.", args[0]);
-            e.printStackTrace();
-            System.exit(1);
-        } catch (IOException e) {
-            LOG.error("Error in processing the config file.");
-            System.exit(1);
-        }
+	private int port;
+	private int proxyPort;
 
-        AlcatrazClient client = new AlcatrazClient(props);
-        Thread console = new Thread(new ClientConsole(client));
-        client.start();
-        console.start();
+	public AlcatrazClient(Properties props) {
+		this.alcatraz = new Alcatraz();
+		this.username = props.getProperty("client.username");
+		this.password = props.getProperty("client.password");
+		this.ip = props.getProperty("client.ip");
+		this.port = Integer.parseInt(props.getProperty("client.port"));
+		this.proxyIp = props.getProperty("proxy.ip");
+		this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
+	}
 
-    }
+	public static void main(String args[]) {
+		if (args == null || args.length != 1) {
+			System.out
+					.println("Invalid argument count - provide name of the config file.");
+			System.exit(1);
+		}
 
-    @Override
-    public void startGame(Game game) throws RemoteException {
-        // TODO Auto-generated method stub
+		Properties props = new Properties();
+		try {
+			props.load(new FileInputStream(args[0]));
+		} catch (FileNotFoundException e) {
+			LOG.error("Config file: {} not found.", args[0]);
+			e.printStackTrace();
+			System.exit(1);
+		} catch (IOException e) {
+			LOG.error("Error in processing the config file.");
+			System.exit(1);
+		}
 
-    }
+		AlcatrazClient client = new AlcatrazClient(props);
+		Thread console = new Thread(new ClientConsole(client));
+		client.start();
+		console.start();
 
-    @Override
-    public void doMove(Movement m) throws RemoteException {
-        // TODO Auto-generated method stub
+	}
 
-    }
+	@Override
+	public void startGame(Game game) throws RemoteException {
+		// TODO Auto-generated method stub
 
-    @Override
-    public List<Movement> getHistory() throws RemoteException {
-        // TODO Auto-generated method stub
-        return null;
-    }
+	}
 
-    public void shutdown() {
-        this.alcatraz.disposeWindow();
+	@Override
+	public void doMove(Movement m) throws RemoteException {
+		// TODO Auto-generated method stub
 
-    }
+	}
 
-    public void register() {
-        try {
-            boolean register = this.server.register(this.username, this.password);
+	@Override
+	public List<Movement> getHistory() throws RemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-            if (register) {
-                System.out.println("You are successfully registered");
-            } else {
-                System.out.println("You were not registered. It seems you are already registered");
-            }
+	public void shutdown() {
+		this.alcatraz.disposeWindow();
 
-        } catch (RemoteException e) {
-            LOG.error("An error occurred. No Repsonse from server. Cause:{}", e.getMessage());
-            System.out.println("An error occurred. The server was unreachable. Please try again later.");
-        }
-    }
+	}
 
-    public void unregister() {
-        try {
-            boolean unregister = this.server.unregister(this.username, this.password);
+	public void register() throws RemoteException {
+		boolean register = this.server.register(this.username, this.password);
 
-            if (unregister) {
-                System.out.println("You signed out successfully");
-            } else {
-                System.out
-                        .println("You did not sign out. It seems you are trying to sign out without registering first");
-            }
+		if (register) 
+			System.out.println("You are successfully registered");
+		else 
+			System.out
+					.println("You were not registered. It seems you are already registered");
+	}
 
-        } catch (RemoteException e) {
-            LOG.error("An error occurred. No Repsonse from server. Cause:{}", e.getMessage());
-            System.out.println("An error occurred. The server was unreachable. Please try again later.");
-        }
-    }
+	public void unregister() throws RemoteException {
+		boolean unregister = this.server.unregister(this.username, this.password);
 
-    public void fetchGames() {
-        try {
-            List<Game> games = this.server.fetchGames();
-            System.out.println("Name \t Nr. Players");
-            for (Game g : games) {
-                System.out.println(g.getName() + "\t" + g.getPlayers().size());
-            }
-            
-        } catch (RemoteException e) {
-            LOG.error("An error occurred. The server was unreachable. Cause:{}", e.getMessage());
-            System.out.println("An error occurred. The server was unreachable. Please try again later.");
-        }
-    }
+		if (unregister) 
+			System.out.println("You signed out successfully");
+		else 
+			System.out
+					.println("You did not sign out. It seems you are trying to sign out without registering first");
 
-    public void createGame(String name) {
-        try {
-            boolean created = this.server.createGame(name, this.username, this.password);
-            if (created) {
-                System.out.println("You created a game successfully. Check out the games in order to see if somebody joined");
-            } else {
-                System.out.println("The Game could not be created");
-            }
-        } catch (RemoteException e) {
-            LOG.error("An error occurred. The server was unreachable. Cause:{}", e.getMessage());
-            System.out.println("An error occurred. The server was unreachable. Please try again later.");
-        }
-    }
+	}
 
-    public void cancelGame(String name) {
+	public void fetchGames() throws RemoteException {
+		List<Game> games = this.server.fetchGames();
+		System.out.println("Name \t Nr. Players");
+		if (games.isEmpty())
+			System.out.println("No games available at the moment.");
+		for (Game g : games) {
+			System.out.println(g.getName() + "\t" + g.getPlayers().size());
+		}
 
-    }
+	}
 
-    public void joinGame(String name) {
+	public void createGame(String name) throws RemoteException {
+		boolean created = this.server.createGame(name, this.username, this.password);
+		if (created) 
+			System.out
+					.println("You created a game successfully. Check out the games in order to see if somebody joined");
+		else 
+			System.out.println("The Game could not be created");
+	}
 
-    }
+	public void cancelGame(String name) throws RemoteException {
+		boolean cancelled = this.server.cancelGame(name, this.username, this.password);
+		if(cancelled)
+			System.out.println("Game " + name + " was successfully cancelled.");
+		else
+			System.out.println("Game " + name + "could not be cancelled.");
+	}
 
-    public void leaveGame(String name) {
+	public void joinGame(String name) throws RemoteException {
+		boolean joined = this.server.joinGame(name, this.username, this.password);
+		if(joined)
+			System.out.println("You have successfully joined the game: " + name);
+		else
+			System.out.println("Game " + name + " could not be joined.");
+	}
 
-    }
+	public void leaveGame(String name) throws RemoteException {
+		boolean left = this.server.leaveGame(name, this.username, this.password);
+		if(left)
+			System.out.println("You have left the game: " + name);
+		else
+			System.out.println("Game " + name + " could not be left.");
+	}
 
-    // Server
-    public void startGame(String name) {
+	// Server
+	public void startGame(String name) throws RemoteException {
+		Game game = this.server.startGame(name, this.username, this.password);
+		if(game != null) {
+			System.out.println("Game " + name + " has been successfully started.");
+			for(ClientMock client : game.getPlayers())
+				;// Call startgame on each client
+		} else
+			System.out.println("Game " + name + " could not be started.");
+	}
 
-    }
+	private void start() {
+		this.getServerProxy();
+		// something else?
+	}
 
-    private void start() {
-        this.getServerProxy();
-        // something else?
-    }
-
-    private void getServerProxy() {
-        try {
-            this.server = (IServer) Naming.lookup("rmi://" + "localhost" + ":" + 1234 + "/"
-                    + Constants.REMOTE_SERVER_OBJECT_NAME);
-        } catch (MalformedURLException e) {
-            LOG.error("An error occurred, the server uri seem to be malformed. Cause: {}", e.getMessage());
-        } catch (RemoteException e) {
-            LOG.error("An error occurred, the server seems to be unreachable. Cause: {}", e.getMessage());
-        } catch (NotBoundException e) {
-            LOG.error("An error occurred, the server seems to be unreachable. Cause: {}", e.getMessage());
-        }
-    }
+	private void getServerProxy() {
+		try {
+			this.server = (IServer) Naming.lookup("rmi://" + "localhost" + ":"
+					+ 1234 + "/" + Constants.REMOTE_SERVER_OBJECT_NAME);
+		} catch (MalformedURLException e) {
+			LOG.error(
+					"An error occurred, the server uri seem to be malformed. Cause: {}",
+					e.getMessage());
+		} catch (RemoteException e) {
+			LOG.error(
+					"An error occurred, the server seems to be unreachable. Cause: {}",
+					e.getMessage());
+		} catch (NotBoundException e) {
+			LOG.error(
+					"An error occurred, the server seems to be unreachable. Cause: {}",
+					e.getMessage());
+		}
+	}
 
 }
