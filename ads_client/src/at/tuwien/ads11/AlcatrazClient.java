@@ -7,6 +7,9 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
@@ -36,6 +39,8 @@ public class AlcatrazClient implements IClient {
 
     private int port;
     private int proxyPort;
+    
+    private List<IClient> clientStubCache;
 
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
@@ -45,6 +50,7 @@ public class AlcatrazClient implements IClient {
         this.port = Integer.parseInt(props.getProperty("client.port"));
         this.proxyIp = props.getProperty("proxy.ip");
         this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
+        this.clientStubCache = new LinkedList<IClient>();
     }
 
     public static void main(String args[]) {
@@ -180,15 +186,42 @@ public class AlcatrazClient implements IClient {
     // Server
     public void startGame(String name) throws RemoteException {
         Game game = this.server.startGame(name, this.username, this.password);
+        List<ClientMock> unreachableClients = new ArrayList<ClientMock>();
         if (game != null) {
             System.out.println("Game " + name + " has been successfully started.");
-            for (ClientMock client : game.getPlayers())
-                ;// Call startgame on each client
+            boolean started;
+            for (ClientMock client : game.getPlayers()) {
+                started = callStartGameOnClient(client, game);
+                if (!started)
+                	unreachableClients.add(client);
+            }
+            
+            while(!unreachableClients.isEmpty()) {
+            	Iterator<ClientMock> it = unreachableClients.iterator();
+            	while(it.hasNext()) {
+            		if(callStartGameOnClient(it.next(), game));
+            			it.remove();
+            	}
+            }
+            	
         } else
             System.out.println("Game " + name + " could not be started.");
     }
+    
+    private boolean callStartGameOnClient(ClientMock client, Game game) {
+    	try {
+			IClient clientStub = (IClient) Naming.lookup("rmi://" + client.getHost() + ":" + client.getPort() + "/"
+			        + Constants.REMOTE_CLIENT_OBJECT_NAME);
+			clientStub.startGame(game);
+			clientStubCache.add(clientStub);
+			return true;
+		} catch (Exception e) {
+			LOG.debug("Startgame failed on client: " + client.getName());
+			return false;
+		}
+	}
 
-    private void start() {
+	private void start() {
         this.getServerProxy();
         // something else?
     }
