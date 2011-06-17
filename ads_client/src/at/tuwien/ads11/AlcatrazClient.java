@@ -44,6 +44,7 @@ public class AlcatrazClient implements IClient {
     private int port;
     private int proxyPort;
 
+    private List<ClientMock> clients;
     private List<IClient> clientStubCache;
     private List<Movement> history;
 
@@ -56,6 +57,8 @@ public class AlcatrazClient implements IClient {
     private String hostingGame;
     private String joinedGame;
     
+    private ClientSynchronizer synchronizer;
+
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
         this.username = props.getProperty("client.username");
@@ -96,15 +99,19 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void startGame(Game game) throws RemoteException {
-        System.out.println(game.getPlayers().size());
         int numPlayers = game.getPlayers().size();
         int numId = -1;
+        
+        this.setClients(game.getPlayers());
         ClientMock tmp = new ClientMock(this.username, this.password);
+
         for (int i = 0; i < game.getPlayers().size(); i++) {
             if (tmp.getName().equals(game.getPlayers().get(i).getName())) {
                 numId = i;
             }
         }
+        
+        this.clients.remove(tmp);
 
         if (numId < 0 || numId > 3) {
             // TODO error handling
@@ -114,22 +121,32 @@ public class AlcatrazClient implements IClient {
         if (this.getClientStubCache().size() == 0) {
             this.initRemoteStubs(game.getPlayers());
         }
-        
+
         this.alcatraz.init(numPlayers, numId);
         this.alcatraz.addMoveListener(new ClientMoveListener(this));
         this.alcatraz.start();
-        
-        int prev = (numId == 0) ? numPlayers - 1 : numId - 1; 
-        Thread sync = new Thread(new ClientSynchronizer(this, 15000, prev));
+
+        this.synchronizer = new ClientSynchronizer(this, 15000, numId);
+        Thread sync = new Thread(this.synchronizer);
         sync.start();
-        
+
         this.alcatraz.showWindow();
     }
 
     @Override
     public void doMove(Movement m) throws RemoteException {
-        this.alcatraz.doMove(m.getPlayer(), m.getPrisoner(), m.getRowOrCol(), m.getRow(), m.getCol());
-        this.history.add(m);
+        if (this.getLocalHistory().size() == 0) {
+           this.applyMove(m);
+        } else {
+            Movement lastKnown = this.getLocalHistory().get(this.getLocalHistory().size() - 1);
+            if (Math.abs(lastKnown.getPlayer().getId() - m.getPlayer().getId()) > 1) {
+                LOG.warn("Something must have gone wrong. Last known player id is {}, moving player id was {}",
+                        lastKnown.getPlayer().getId(), m.getPlayer().getId());
+                this.synchronizer.synchronize();
+            } else {
+                this.applyMove(m);
+            }
+        }
 
     }
 
@@ -137,7 +154,7 @@ public class AlcatrazClient implements IClient {
     public List<Movement> getHistory() throws RemoteException {
         return this.history;
     }
-    
+
     public List<Movement> getLocalHistory() {
         return this.history;
     }
@@ -261,11 +278,12 @@ public class AlcatrazClient implements IClient {
         	System.out.println("Game: " + game.getName() + " rejoined.");
         	runningGame = true;
         	return;
+
         }
-        
-    	if (game != null) {
+
+        if (game != null) {
             this.initRemoteStubs(game.getPlayers());
-            	
+
             for (IClient c : this.getClientStubCache()) {
                 callStartGameOnClient(c, game);
             }
@@ -291,7 +309,7 @@ public class AlcatrazClient implements IClient {
 
             }
         }
-        
+
         while (!unreachableClients.isEmpty()) {
             Iterator<ClientMock> it = unreachableClients.iterator();
             while (it.hasNext()) {
@@ -308,7 +326,7 @@ public class AlcatrazClient implements IClient {
         }
     }
 
-    private IClient getStub(ClientMock client) throws Exception {
+    public IClient getStub(ClientMock client) throws Exception {
         IClient clientStub = (IClient) Naming.lookup("rmi://" + client.getHost() + ":" + client.getPort() + "/"
                 + Constants.REMOTE_CLIENT_OBJECT_NAME);
 
@@ -337,7 +355,7 @@ public class AlcatrazClient implements IClient {
         } catch (RemoteException e) {
             e.printStackTrace();
         }
-        
+
     }
 
     private void getServerProxy() {
@@ -359,5 +377,20 @@ public class AlcatrazClient implements IClient {
 
     public List<IClient> getClientStubCache() {
         return clientStubCache;
+    }
+
+    public void applyMove(Movement m) {
+        LOG.info("applying movement: {}", m);
+        this.alcatraz.doMove(m.getPlayer(), m.getPrisoner(), m.getRowOrCol(), m.getRow(), m.getCol());
+        this.history.add(m);
+        
+    }
+
+    public void setClients(List<ClientMock> clients) {
+        this.clients = clients;
+    }
+
+    public List<ClientMock> getClients() {
+        return clients;
     }
 }

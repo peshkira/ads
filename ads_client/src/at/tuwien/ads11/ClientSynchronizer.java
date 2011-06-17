@@ -7,6 +7,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import at.tuwien.ads11.remote.ClientMock;
 import at.tuwien.ads11.remote.Movement;
 
 public class ClientSynchronizer implements Runnable {
@@ -21,11 +22,11 @@ public class ClientSynchronizer implements Runnable {
 
     private AlcatrazClient client;
 
-    public ClientSynchronizer(AlcatrazClient client, int time, int prevIndex) {
+    public ClientSynchronizer(AlcatrazClient client, int time, int numId) {
         this.setWait(time);
         this.setRun(true);
         this.client = client;
-        this.prevIndex = prevIndex;
+        this.initPrevIndex(numId);
     }
 
     @Override
@@ -33,30 +34,45 @@ public class ClientSynchronizer implements Runnable {
         while (isRun()) {
             try {
 
-                List<Movement> remote = client.getClientStubCache().get(this.prevIndex).getHistory();
-                List<Movement> local = client.getLocalHistory();
-
-                List<Movement> delta = this.getDelta(local, remote);
-                this.applyDelta(delta);
-
                 Thread.sleep(this.wait);
+                this.synchronize();
 
             } catch (RemoteException e) {
                 LOG.warn("An error occurred while trying to synchronize: {}", e.getMessage());
-
+                this.rebindStub();
+                
             } catch (InterruptedException e) {
             }
         }
     }
 
+    private void rebindStub() {
+        ClientMock mock = this.client.getClients().get(this.prevIndex);
+        try {
+            IClient stub = this.client.getStub(mock);
+            if (stub != null) {
+                this.client.getClientStubCache().remove(this.prevIndex);
+                this.client.getClientStubCache().add(this.prevIndex, stub);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+    }
+
+    public synchronized void synchronize() throws RemoteException {
+        List<Movement> remote = client.getClientStubCache().get(this.getPrevIndex()).getHistory();
+        List<Movement> local = client.getLocalHistory();
+
+        List<Movement> delta = this.getDelta(local, remote);
+        this.applyDelta(delta);
+
+    }
+
     private void applyDelta(List<Movement> delta) {
         for (Movement m : delta) {
-            try {
-                this.client.doMove(m); //local call
-                LOG.info("applying movement: {}", m);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            this.client.applyMove(m); // local call
         }
 
     }
@@ -78,6 +94,23 @@ public class ClientSynchronizer implements Runnable {
         return delta;
     }
 
+    private void initPrevIndex(int numId) {
+        switch (numId) {
+        case 0:
+            this.setPrevIndex(this.client.getClientStubCache().size() - 1);
+            break;
+        case 1:
+            this.setPrevIndex(0);
+            break;
+        case 2:
+            this.setPrevIndex(1);
+            break;
+        case 3:
+            this.setPrevIndex(2);
+            break;
+        }
+    }
+
     public void setRun(boolean run) {
         this.run = run;
     }
@@ -92,5 +125,13 @@ public class ClientSynchronizer implements Runnable {
 
     public int getWait() {
         return wait;
+    }
+
+    public void setPrevIndex(int prevIndex) {
+        this.prevIndex = prevIndex;
+    }
+
+    public int getPrevIndex() {
+        return prevIndex;
     }
 }
