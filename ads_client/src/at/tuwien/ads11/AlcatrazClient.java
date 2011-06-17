@@ -111,15 +111,19 @@ public class AlcatrazClient implements IClient {
             LOG.error("numId is out of Range");
         }
 
-        this.initRemoteStubs(game.getPlayers());
+        if (this.getClientStubCache().size() == 0) {
+            this.initRemoteStubs(game.getPlayers());
+        }
         
         this.alcatraz.init(numPlayers, numId);
         this.alcatraz.addMoveListener(new ClientMoveListener(this));
         this.alcatraz.start();
+        
+        int prev = (numId == 0) ? numPlayers - 1 : numId - 1; 
+        Thread sync = new Thread(new ClientSynchronizer(this, 15000, prev));
+        sync.start();
+        
         this.alcatraz.showWindow();
-
-        // is there something else to do here?
-        // check if you are the first one and move....?
     }
 
     @Override
