@@ -366,8 +366,8 @@ public class ReplicatedServer implements IServer {
 
         if (this.state.getClients().contains(c)) {
             for (Game tmp : this.state.getGames()) {
-                if (tmp.getName().equals(g.getName())) {
-                    return tmp.getPlayers().add(c);
+                if (tmp.getName().equals(g.getName()) && !g.containsPlayerName(c.getHost())) {
+                	return tmp.getPlayers().add(c);
                 }
             }
         }

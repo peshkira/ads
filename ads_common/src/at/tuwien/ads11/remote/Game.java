@@ -56,6 +56,13 @@ public class Game implements Serializable {
     public String getPass() {
         return pass;
     }
+    
+    public boolean containsPlayerName(String name) {
+    	for(ClientMock player : players)
+    		if(player.getName().equals(name))
+    			return true;
+    	return false;
+    }
 
     @Override
     public int hashCode() {
