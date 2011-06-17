@@ -90,11 +90,12 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void startGame(Game game) throws RemoteException {
+        System.out.println(game.getPlayers().size());
         int numPlayers = game.getPlayers().size();
         int numId = -1;
         ClientMock tmp = new ClientMock(this.username, this.password);
         for (int i = 0; i < game.getPlayers().size(); i++) {
-            if (tmp.equals(game.getPlayers().get(i))) {
+            if (tmp.equals(game.getPlayers().get(i).getName())) {
                 numId = i;
             }
         }
@@ -233,22 +234,21 @@ public class AlcatrazClient implements IClient {
                 }
 
             }
-
-            while (!unreachableClients.isEmpty()) {
-                Iterator<ClientMock> it = unreachableClients.iterator();
-                while (it.hasNext()) {
-                    try {
-                        IClient stub = this.getStub(it.next());
-                        if (stub != null) {
-                            it.remove();
-                            getClientStubCache().add(stub);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+        }
+        
+        while (!unreachableClients.isEmpty()) {
+            Iterator<ClientMock> it = unreachableClients.iterator();
+            while (it.hasNext()) {
+                try {
+                    IClient stub = this.getStub(it.next());
+                    if (stub != null) {
+                        it.remove();
+                        getClientStubCache().add(stub);
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-
         }
     }
 
