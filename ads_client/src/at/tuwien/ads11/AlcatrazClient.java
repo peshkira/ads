@@ -1,7 +1,14 @@
 package at.tuwien.ads11;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import at.falb.games.alcatraz.api.Alcatraz;
 import at.tuwien.ads11.remote.Game;
@@ -9,27 +16,47 @@ import at.tuwien.ads11.remote.Movement;
 
 public class AlcatrazClient implements IClient {
     
-    private Alcatraz alcatraz;
-    
-    private String name;
-    
-    private String pass;
+    private static final Logger LOG = LoggerFactory.getLogger(AlcatrazClient.class);
 
-    public AlcatrazClient(String name, String pass) {
+	private Alcatraz alcatraz;
+    
+    private String username;
+    private String password;
+    private String ip;
+    private String proxyIp;
+    
+    private int port;
+    private int proxyPort;
+    
+    public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
-        this.name = name;
-        this.pass = pass;
+        this.username = props.getProperty("client.username");
+        this.password = props.getProperty("client.password");
+        this.ip = props.getProperty("client.ip");
+        this.port = Integer.parseInt(props.getProperty("client.port"));
+        this.proxyIp = props.getProperty("proxy.ip");
+        this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
     }
     
     public static void main(String args[]) {
-        if (args.length != 2) {
-            System.out.println("Usage: java AlcatrazClient [name] [pass]");
+        if (args == null || args.length != 1) {
+            System.out.println("Invalid argument count - provide name of the config file.");
             System.exit(1);
         }
-        
-        String name = args[0];
-        String pass = args[1];
-        AlcatrazClient client = new AlcatrazClient(name, pass);
+
+        Properties props = new Properties();
+        try {
+            props.load(new FileInputStream(args[0]));
+        } catch (FileNotFoundException e) {
+            LOG.error("Config file: {} not found.", args[0]);
+            e.printStackTrace();
+            System.exit(1);
+        } catch (IOException e) {
+            LOG.error("Error in processing the config file.");
+            System.exit(1);
+        }
+
+        AlcatrazClient client = new AlcatrazClient(props);
         Thread console = new Thread(new ClientConsole(client));
         console.start();
         
