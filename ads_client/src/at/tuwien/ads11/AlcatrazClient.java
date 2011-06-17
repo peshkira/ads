@@ -24,6 +24,7 @@ import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 import at.tuwien.ads11.remote.Movement;
 
+
 public class AlcatrazClient implements IClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(AlcatrazClient.class);
@@ -41,6 +42,9 @@ public class AlcatrazClient implements IClient {
     private int proxyPort;
     
     private List<IClient> clientStubCache;
+    private List<Movement> history;
+    
+    private Game game;
 
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
@@ -51,6 +55,7 @@ public class AlcatrazClient implements IClient {
         this.proxyIp = props.getProperty("proxy.ip");
         this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
         this.clientStubCache = new LinkedList<IClient>();
+        this.history = new ArrayList<Movement>();
     }
 
     public static void main(String args[]) {
@@ -80,6 +85,7 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void startGame(Game game) throws RemoteException {
+        this.game = game;
         int numPlayers = game.getPlayers().size();
         int numId = -1;
         ClientMock tmp = new ClientMock(this.username, this.password);
@@ -94,7 +100,8 @@ public class AlcatrazClient implements IClient {
         }
 
         this.alcatraz.init(numPlayers, numId);
-        this.alcatraz.addMoveListener(new ClientMoveListener());
+        this.alcatraz.addMoveListener(new ClientMoveListener(this));
+        this.alcatraz.start();
 
         // is there something else to do here?
         // check if you are the first one and move....?
@@ -102,7 +109,9 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void doMove(Movement m) throws RemoteException {
-        // TODO Auto-generated method stub
+        this.alcatraz.doMove(m.getPlayer(), m.getPrisoner(), m.getRowOrCol(), m.getRow(), m.getCol());
+        this.history.add(m);
+        
 
     }
 
@@ -240,5 +249,13 @@ public class AlcatrazClient implements IClient {
         } catch (NotBoundException e) {
             LOG.error("An error occurred, the server seems to be unreachable. Cause: {}", e.getMessage());
         }
+    }
+
+    public void setGame(Game game) {
+        this.game = game;
+    }
+
+    public Game getGame() {
+        return game;
     }
 }
