@@ -41,7 +41,6 @@ import at.tuwien.ads11.utils.ResultPoller;
 import at.tuwien.ads11.utils.ServerConstants;
 import at.tuwien.ads11.utils.ServerMessageFactory;
 
-//TODO figure out how to forward calls to a failed rmi registry dynamically to another registry
 public class ReplicatedServer implements IServer {
 
     private static final long serialVersionUID = -8917839808656077153L;

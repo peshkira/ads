@@ -1,7 +1,5 @@
 package at.tuwien.ads11.listener;
 
-import java.util.Random;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +17,6 @@ public class ServerRequestMessageListener implements BasicMessageListener {
     private static final Logger LOG = LoggerFactory.getLogger(ServerRequestMessageListener.class);
     private ReplicatedServer server;
 
-    private int count = 1;
-
     public ServerRequestMessageListener(ReplicatedServer server) {
         this.server = server;
     }
@@ -30,17 +26,10 @@ public class ServerRequestMessageListener implements BasicMessageListener {
         LOG.debug("Message of type {} received", msg.getType());
         switch (msg.getType()) {
         case ServerConstants.MSG_GET_SERVER_REFERENCE:
-            this.server.sendProxyReference(msg.getSender());
-
+            processGetServerReferenceRequest(msg);
             break;
         case ServerConstants.MSG_GET_SERVER_REFERENCE_RESPONSE:
-            try {
-                RMIServerInfo s = (RMIServerInfo) msg.getObject();
-                this.server.receiveServerReference(s);
-
-            } catch (SpreadException e) {
-                e.printStackTrace();
-            }
+            processGetServerReferenceResponse(msg);
             break;
         case ServerConstants.MSG_GET_SERVER_STATE:
             processServerStateRequest(msg);
@@ -51,6 +40,21 @@ public class ServerRequestMessageListener implements BasicMessageListener {
         default:
             break;
         }
+    }
+
+    private void processGetServerReferenceResponse(SpreadMessage msg) {
+        try {
+            RMIServerInfo s = (RMIServerInfo) msg.getObject();
+            this.server.receiveServerReference(s);
+
+        } catch (SpreadException e) {
+            e.printStackTrace();
+        }
+        
+    }
+
+    private void processGetServerReferenceRequest(SpreadMessage msg) {
+        this.server.sendProxyReference(msg.getSender());        
     }
 
     private void processServerStateRequest(SpreadMessage msg) {
