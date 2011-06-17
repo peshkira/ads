@@ -66,7 +66,7 @@ public class ReplicatedServer implements IServer {
     private IServer stub;
     private List<SpreadGroup> groupMembers;
     private int lastGroupMemberIndex;
-    
+
     private List<SpreadMessage> msgBuffer;
     private AtomicBoolean upToDate;
     private AtomicBoolean bufferMsgs;
@@ -209,6 +209,7 @@ public class ReplicatedServer implements IServer {
         LOG.debug("incoming create game call");
 
         Game g = new Game(game, name, pass);
+        g.getPlayers().add(new ClientMock(name, pass));
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
         try {
@@ -307,11 +308,8 @@ public class ReplicatedServer implements IServer {
         Game result = (Game) poller.poll(uuid);
         this.requests.remove(uuid); // not needed anymore
 
-        if (result != null) {
-            return result;
-        } else {
-            throw new RemoteException("No response");
-        }
+        //can be null
+        return result;
 
     }
 
@@ -536,14 +534,14 @@ public class ReplicatedServer implements IServer {
 
         return anonymize;
     }
-    
+
     public void rejoinServerGroup() throws SpreadException {
-    	serverGroup.leave();
-    	serverGroup.join(spreadCon, ServerConstants.SPREAD_SERVER_GROUP);
+        serverGroup.leave();
+        serverGroup.join(spreadCon, ServerConstants.SPREAD_SERVER_GROUP);
     }
-    
+
     public void sendMsg(SpreadMessage msg) throws SpreadException {
-    	this.spreadCon.multicast(msg);
+        this.spreadCon.multicast(msg);
     }
 
     private Game anonymizeGame(Game tmp) {
@@ -558,46 +556,45 @@ public class ReplicatedServer implements IServer {
     public String getServerId() {
         return serverId;
     }
-    
+
     public ServerState getState() {
-		return state;
-	}
+        return state;
+    }
 
-	public void setState(ServerState state) {
-		this.state = state;
-		if(!msgBuffer.isEmpty()) {
-			ClientRequestMessageListener processor = new ClientRequestMessageListener(this);
-			for(SpreadMessage msg : msgBuffer)
-				processor.processMsg(msg);
-			msgBuffer.clear();
-		}
-		upToDate.set(true);
-	}
+    public void setState(ServerState state) {
+        this.state = state;
+        if (!msgBuffer.isEmpty()) {
+            ClientRequestMessageListener processor = new ClientRequestMessageListener(this);
+            for (SpreadMessage msg : msgBuffer)
+                processor.processMsg(msg);
+            msgBuffer.clear();
+        }
+        upToDate.set(true);
+    }
 
-	public List<SpreadGroup> getGroupMembers() {
-		return groupMembers;
-	}
+    public List<SpreadGroup> getGroupMembers() {
+        return groupMembers;
+    }
 
-	public void setGroupMembers(SpreadGroup[] groupMembers) {
-		this.groupMembers = new LinkedList<SpreadGroup>();
-		for(SpreadGroup group : groupMembers) {
-		    LOG.info("GROUP: {}, OWNGROUP: {}", group.toString(), ownGroup.toString());
-			if(group.toString().startsWith(ownGroup.toString(), 1)) {
-			    LOG.debug("FILTERED {}", group.toString());
-				continue;
-			}
-			else
-				this.groupMembers.add(group);
-		}
-	}
-	
-	public int getLastGroupMemberIndex() {
-		return lastGroupMemberIndex;
-	}
+    public void setGroupMembers(SpreadGroup[] groupMembers) {
+        this.groupMembers = new LinkedList<SpreadGroup>();
+        for (SpreadGroup group : groupMembers) {
+            LOG.info("GROUP: {}, OWNGROUP: {}", group.toString(), ownGroup.toString());
+            if (group.toString().startsWith(ownGroup.toString(), 1)) {
+                LOG.debug("FILTERED {}", group.toString());
+                continue;
+            } else
+                this.groupMembers.add(group);
+        }
+    }
 
-	public void setLastGroupMemberIndex(int lastGroupMemberIndex) {
-		this.lastGroupMemberIndex = lastGroupMemberIndex;
-	}
+    public int getLastGroupMemberIndex() {
+        return lastGroupMemberIndex;
+    }
+
+    public void setLastGroupMemberIndex(int lastGroupMemberIndex) {
+        this.lastGroupMemberIndex = lastGroupMemberIndex;
+    }
 
     @Override
     public String toString() {
@@ -608,24 +605,24 @@ public class ReplicatedServer implements IServer {
         return this.ownGroup;
     }
 
-	public SpreadGroup getServerGroup() {
-		return serverGroup;
-	}
+    public SpreadGroup getServerGroup() {
+        return serverGroup;
+    }
 
-	public List<SpreadMessage> getMsgBuffer() {
-		return msgBuffer;
-	}
+    public List<SpreadMessage> getMsgBuffer() {
+        return msgBuffer;
+    }
 
-	public void setMsgBuffer(List<SpreadMessage> msgBuffer) {
-		this.msgBuffer = msgBuffer;
-	}
+    public void setMsgBuffer(List<SpreadMessage> msgBuffer) {
+        this.msgBuffer = msgBuffer;
+    }
 
-	public AtomicBoolean getUpToDate() {
-		return upToDate;
-	}
+    public AtomicBoolean getUpToDate() {
+        return upToDate;
+    }
 
-	public AtomicBoolean getBufferMsgs() {
-		return bufferMsgs;
-	}
+    public AtomicBoolean getBufferMsgs() {
+        return bufferMsgs;
+    }
 
 }
