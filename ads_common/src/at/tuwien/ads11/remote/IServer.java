@@ -16,7 +16,7 @@ public interface IServer extends Remote, Serializable {
      *            the pass for unregistering
      * @return true if the registration process was successful, false otherwise.
      */
-    boolean register(String name, String pass) throws RemoteException;
+    boolean register(ClientMock client) throws RemoteException;
 
     /**
      * Unregisters as a client from the server.

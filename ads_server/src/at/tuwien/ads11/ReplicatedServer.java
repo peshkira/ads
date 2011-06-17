@@ -27,12 +27,12 @@ import spread.SpreadConnection;
 import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
-import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.listener.ClientRequestMessageListener;
 import at.tuwien.ads11.listener.MembershipMessageListener;
 import at.tuwien.ads11.listener.ServerRequestMessageListener;
 import at.tuwien.ads11.proxy.ProxyFactory;
+import at.tuwien.ads11.remote.ClientMock;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 import at.tuwien.ads11.utils.RMIServerInfo;
@@ -126,9 +126,8 @@ public class ReplicatedServer implements IServer {
      * new one.
      */
     @Override
-    public synchronized boolean register(String name, String pass) throws RemoteException {
+    public synchronized boolean register(ClientMock client) throws RemoteException {
         LOG.debug("incoming registration call");
-        ClientMock client = new ClientMock(name, pass);
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
         try {
 
@@ -154,7 +153,7 @@ public class ReplicatedServer implements IServer {
         }
     }
 
-    public boolean register(ClientMock mock) {
+    public boolean registerClient(ClientMock mock) {
         LOG.info("registering client [{}]", mock.getName());
         return this.state.addClient(mock);
     }

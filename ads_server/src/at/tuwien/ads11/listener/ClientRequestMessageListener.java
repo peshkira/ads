@@ -9,7 +9,7 @@ import spread.BasicMessageListener;
 import spread.SpreadException;
 import spread.SpreadMessage;
 import at.tuwien.ads11.ReplicatedServer;
-import at.tuwien.ads11.common.ClientMock;
+import at.tuwien.ads11.remote.ClientMock;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.utils.RequestUUID;
 import at.tuwien.ads11.utils.ServerConstants;
@@ -126,7 +126,7 @@ public class ClientRequestMessageListener implements BasicMessageListener {
             RequestUUID uuid = (RequestUUID) digest.get(1);
             Boolean response = null;
             if (reg) {
-                response = server.register(client);
+                response = server.registerClient(client);
             } else {
                 response = server.unregister(client);
             }

@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import at.tuwien.ads11.common.ClientMock;
+import at.tuwien.ads11.remote.ClientMock;
 import at.tuwien.ads11.remote.Game;
 
 public class ServerState implements Serializable {

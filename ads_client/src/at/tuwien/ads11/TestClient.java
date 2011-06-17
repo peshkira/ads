@@ -1,10 +1,8 @@
 package at.tuwien.ads11;
 
 import java.rmi.Naming;
-import java.util.List;
 
 import at.tuwien.ads11.common.Constants;
-import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 
 public class TestClient {
@@ -24,13 +22,13 @@ public class TestClient {
 
             IServer server = (IServer) Naming.lookup("rmi://" + host + ":" + port + "/"
                     + Constants.REMOTE_SERVER_OBJECT_NAME);
-            boolean registered = server.register("test", "pass");
+            //boolean registered = server.register("test", "pass");
 
-            if (registered) {
-                System.out.println("I am registered");
-            } else {
-                System.out.println("I am not registered");
-            }
+//            if (registered) {
+//                System.out.println("I am registered");
+//            } else {
+//                System.out.println("I am not registered");
+//            }
 //            
 //            boolean created = server.createGame("MyGame", "test", "pass");
 //            System.out.println("Game created: " + created);

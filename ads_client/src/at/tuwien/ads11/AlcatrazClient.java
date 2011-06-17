@@ -14,9 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import at.falb.games.alcatraz.api.Alcatraz;
-import at.tuwien.ads11.common.ClientMock;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.listener.ClientMoveListener;
+import at.tuwien.ads11.remote.ClientMock;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 import at.tuwien.ads11.remote.Movement;
@@ -112,7 +112,10 @@ public class AlcatrazClient implements IClient {
     }
 
     public void register() throws RemoteException {
-        boolean register = this.server.register(this.username, this.password);
+        ClientMock mock = new ClientMock(this.username, this.password);
+        mock.setHost(this.ip);
+        mock.setPort(this.port);
+        boolean register = this.server.register(mock);
 
         if (register)
             System.out.println("You are successfully registered");

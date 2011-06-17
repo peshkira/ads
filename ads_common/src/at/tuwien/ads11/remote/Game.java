@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import at.tuwien.ads11.common.ClientMock;
 
 
 public class Game implements Serializable {

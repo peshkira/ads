@@ -1,4 +1,4 @@
-package at.tuwien.ads11.common;
+package at.tuwien.ads11.remote;
 
 import java.io.Serializable;
 
@@ -9,6 +9,10 @@ public class ClientMock implements Serializable {
     private String name;
     
     private String pass;
+    
+    private String host;
+    
+    private int port;
     
     public ClientMock(String name, String pass) {
         this.setName(name);
@@ -60,5 +64,21 @@ public class ClientMock implements Serializable {
 
     public String getPass() {
         return pass;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public int getPort() {
+        return port;
     }
 }
