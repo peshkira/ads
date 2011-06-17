@@ -44,16 +44,16 @@ public class ClientConsole implements Runnable {
             this.run = false;
         } else if (line.equals("help")) {
             System.out.println("Use one of the following:");
-            System.out.println("help \t\t- print this message");
+            System.out.println("help \t\t\t- print this message");
             System.out.println("register \t\t- register with the server");
             System.out.println("unregister \t\t- unregister with the server");
-            System.out.println("games \t\t- fetch the open games");
-            System.out.println("create [game name] \t\t- create a new game");
-            System.out.println("cancel [game name] \t\t- cancel the game");
-            System.out.println("join [game name] \t\t- join a new game");
-            System.out.println("leave [game name] \t\t- leave the game");
-            System.out.println("start [game name] \t\t- start a game that you host");
-            System.out.println("exit \t\t- exit the application");
+            System.out.println("games \t\t\t- fetch the open games");
+            System.out.println("create [game name] \t- create a new game");
+            System.out.println("cancel [game name] \t- cancel the game");
+            System.out.println("join [game name] \t- join a new game");
+            System.out.println("leave [game name] \t- leave the game");
+            System.out.println("start [game name] \t- start a game that you host");
+            System.out.println("exit \t\t\t- exit the application");
         } else if (line.equals("register")) {
             //TODO register
             
