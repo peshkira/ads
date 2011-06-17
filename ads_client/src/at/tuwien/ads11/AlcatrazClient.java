@@ -95,7 +95,7 @@ public class AlcatrazClient implements IClient {
         int numId = -1;
         ClientMock tmp = new ClientMock(this.username, this.password);
         for (int i = 0; i < game.getPlayers().size(); i++) {
-            if (tmp.equals(game.getPlayers().get(i).getName())) {
+            if (tmp.getName().equals(game.getPlayers().get(i).getName())) {
                 numId = i;
             }
         }
