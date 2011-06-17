@@ -45,6 +45,7 @@ public class ClientConsole implements Runnable {
 
     }
 
+    // TODO: better command execution
     private void executeCommand(String line) {
     	try {
 	        if (line.equals("exit")) {
@@ -69,19 +70,19 @@ public class ClientConsole implements Runnable {
 	        } else if (line.equals("games")) {
 	            client.fetchGames();
 	            
-	        } else if (line.startsWith("create")) {
+	        } else if (line.startsWith("create ")) {
 	        	client.createGame(line.replaceFirst("create ", ""));
-	        } else if (line.startsWith("cancel")) {
+	        } else if (line.startsWith("cancel ")) {
 	            client.startGame(line.replaceFirst("cancel ", ""));
 	            
-	        } else if (line.startsWith("join")) {
+	        } else if (line.startsWith("join ")) {
 	            client.joinGame(line.replaceFirst("join ", ""));
 	            
-	        } else if (line.startsWith("leave")) {
+	        } else if (line.startsWith("leave ")) {
 	            client.leaveGame(line.replaceFirst("leave ", ""));
 	            
 	        } else if (line.startsWith("start")) {
-	            client.startGame(line.replaceFirst("start ", "").trim());
+	            client.startGame(line.replaceFirst("start", "").trim());
 	            
 	        } else if (line.equals("")) {
 	            //do nothing...
