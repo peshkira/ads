@@ -55,28 +55,26 @@ public class ClientConsole implements Runnable {
             System.out.println("start [game name] \t- start a game that you host");
             System.out.println("exit \t\t\t- exit the application");
         } else if (line.equals("register")) {
-            //TODO register
-            
+            client.register();
         } else if (line.equals("unregister")) {
-            //TODO unregister
+            client.unregister();
             
         } else if (line.equals("games")) {
-            //TODO fetch games from server
+            client.fetchGames();
             
         } else if (line.startsWith("create")) {
-            //TODO parse rest of line and create game;
-            
+        	client.createGame(line.replaceFirst("create ", ""));
         } else if (line.startsWith("cancel")) {
-            //TODO cancel game
+            client.startGame(line.replaceFirst("cancel ", ""));
             
         } else if (line.startsWith("join")) {
-            //TODO join game
+            client.joinGame(line.replaceFirst("join ", ""));
             
         } else if (line.startsWith("leave")) {
-            //TODO leave game
+            client.leaveGame(line.replaceFirst("leave ", ""));
             
         } else if (line.startsWith("start")) {
-            // TODO start game
+            client.startGame(line.replaceFirst("start ", ""));
             
         } else if (line.equals("")) {
             //do nothing...
