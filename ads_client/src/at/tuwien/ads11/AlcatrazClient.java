@@ -210,12 +210,23 @@ public class AlcatrazClient implements IClient {
 
     // Server
     public void startGame(String name) throws RemoteException {
-        Game game = this.server.startGame(name, this.username, this.password);
-        if (game != null) {
+    	Game game = this.server.startGame(name, this.username, this.password);
+    	
+    	// IF rejoining running game...
+        if(name.length() < 1) {
+        	this.startGame(game);
+        	System.out.println("Game: " + game.getName() + " rejoined.");
+        	return;
+        }
+        
+    	if (game != null) {
             this.initRemoteStubs(game.getPlayers());
+            	
             for (IClient c : this.getClientStubCache()) {
                 callStartGameOnClient(c, game);
             }
+            
+            this.startGame(game);
             System.out.println("Game " + name + " has been successfully started.");
         } else
             System.out.println("Game " + name + " could not be started.");

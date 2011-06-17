@@ -290,8 +290,12 @@ public class ReplicatedServer implements IServer {
 
     @Override
     public synchronized Game startGame(String game, String name, String pass) throws RemoteException {
-        LOG.debug("incoming start game call");
-
+        if(game.length() < 1) {
+        	LOG.debug("Rejoining running game");
+        	return rejoinRunningGame(name, pass);
+        }
+        
+    	LOG.debug("incoming start game call");
         Game g = new Game(game, name, pass);
         RequestUUID uuid = new RequestUUID(this.getServerId(), new Date().getTime());
 
@@ -316,7 +320,15 @@ public class ReplicatedServer implements IServer {
 
     }
 
-    public Game startGame(Game g) {
+    private Game rejoinRunningGame(String name, String pass) {
+		ClientMock client = new ClientMock(name, pass);
+    	for(Game game : this.state.getPlaying())
+			if(game.getPlayers().contains(client))
+				return game;
+		return null;
+	}
+
+	public Game startGame(Game g) {
         ClientMock c = new ClientMock(g.getHost(), g.getPass());
         Game start = null;
         if (this.state.getClients().contains(c) && this.state.getGames().contains(g)) {

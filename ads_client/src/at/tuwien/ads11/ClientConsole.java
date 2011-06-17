@@ -81,7 +81,7 @@ public class ClientConsole implements Runnable {
 	            client.leaveGame(line.replaceFirst("leave ", ""));
 	            
 	        } else if (line.startsWith("start")) {
-	            client.startGame(line.replaceFirst("start ", ""));
+	            client.startGame(line.replaceFirst("start ", "").trim());
 	            
 	        } else if (line.equals("")) {
 	            //do nothing...
