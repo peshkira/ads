@@ -68,6 +68,7 @@ public class ClientSynchronizer implements Runnable {
     }
 
     public synchronized void synchronize() throws RemoteException {
+//        LOG.debug("Prev Index: {}", this.getPrevIndex());
         List<Movement> remote = client.getCache().get(this.getPrevIndex()).getHistory();
         List<Movement> local = client.getLocalHistory();
 
@@ -104,7 +105,7 @@ public class ClientSynchronizer implements Runnable {
     private void initPrevIndex(int numId) {
         switch (numId) {
         case 0:
-            this.setPrevIndex(this.client.getCache().size() - 1);
+            this.setPrevIndex(this.client.getClients().size() - 1);
             break;
         case 1:
             this.setPrevIndex(0);

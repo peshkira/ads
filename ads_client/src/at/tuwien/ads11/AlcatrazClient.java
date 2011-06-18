@@ -47,9 +47,9 @@ public class AlcatrazClient implements IClient {
     private int proxyPort;
 
     private List<ClientMock> clients;
-//    private List<IClient> clientStubCache;
+    // private List<IClient> clientStubCache;
     private List<Movement> history;
-    
+
     private Map<Integer, IClient> cache;
 
     private Registry registry;
@@ -108,13 +108,13 @@ public class AlcatrazClient implements IClient {
     public void startGame(Game game) throws RemoteException {
         numPlayers = game.getPlayers().size();
         int numId = -1;
-        
-        this.setClients(clients);
-        
+
+        this.setClients(game.getPlayers());
+
         if (this.cache.size() == 0) {
             this.initRemoteStubs(game.getPlayers());
         }
-        
+
         ClientMock tmp = new ClientMock(this.username, this.password);
 
         for (int i = 0; i < game.getPlayers().size(); i++) {
@@ -123,14 +123,12 @@ public class AlcatrazClient implements IClient {
             }
         }
 
-        
         if (numId < 0 || numId > 3) {
             // TODO error handling
             LOG.error("numId is out of Range {}", numId);
         }
 
         LOG.debug("My NumId is {}", numId);
-        
 
         this.alcatraz.init(numPlayers, numId);
         this.alcatraz.addMoveListener(new ClientMoveListener(this));
@@ -334,18 +332,20 @@ public class AlcatrazClient implements IClient {
         int i = 0;
         for (ClientMock client : clients) {
             if (client.getName().equals(this.username)) {
-                this.cache.put(i, null);
+                this.cache.put(i++, null);
                 continue;
             } else {
                 try {
                     IClient clientStub = this.getStub(client);
                     this.cache.put(i, clientStub);
-                    
+
                 } catch (Exception e) {
                     unreachableClients.add(i);
                 }
 
             }
+            
+            i++;
         }
 
         while (!unreachableClients.isEmpty()) {
@@ -372,29 +372,6 @@ public class AlcatrazClient implements IClient {
 
         return clientStub;
     }
-    
-//    public boolean refreshCache() {
-//        List<IClient> cache = new ArrayList<IClient>();
-//        for (ClientMock client : clients) {
-//            if (client.getName().equals(this.username))
-//                continue;
-//            else {
-//                try {
-//                    IClient clientStub = this.getStub(client);
-//                    cache.add(clientStub);
-//                } catch (Exception e) {
-//                }
-//            }
-//        }
-//        
-//        if (cache.size() == clientStubCache.size()) {
-//            System.out.println("refresh cache");
-//            this.setClientStubCache(cache);
-//            return true;
-//        }
-//        
-//        return false;
-//    }
 
     private void callStartGameOnClient(IClient clientStub, Game game) {
         try {
@@ -447,9 +424,9 @@ public class AlcatrazClient implements IClient {
 
     // Only for testing purposes.
     @Override
-	public String getName() throws RemoteException {
-		return this.username;
-	}
+    public String getName() throws RemoteException {
+        return this.username;
+    }
 
     public Map<Integer, IClient> getCache() {
         return this.cache;

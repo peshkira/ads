@@ -48,7 +48,10 @@ public class ClientMoveListener implements MoveListener {
     
     private void refreshStub(int idx) {
         try {
-            this.client.getStub(this.client.getClients().get(idx));
+            IClient stub = this.client.getStub(this.client.getClients().get(idx));
+            if (stub != null) {
+                this.client.getCache().put(idx, stub);
+            }
         } catch (Exception e) {
             System.out.println("refresh was unsuccessful!");
         }
