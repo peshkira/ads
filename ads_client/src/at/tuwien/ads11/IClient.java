@@ -39,4 +39,7 @@ public interface IClient extends Remote {
      * @throws RemoteException
      */
     List<Movement> getHistory() throws RemoteException;
+    
+    // Only for testing puposes
+    String getName() throws RemoteException;
 }

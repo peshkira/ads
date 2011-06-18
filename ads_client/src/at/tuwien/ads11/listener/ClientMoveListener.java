@@ -38,13 +38,14 @@ public class ClientMoveListener implements MoveListener {
         
         System.out.println("size: " + client.getClientStubCache().size());
         for (IClient c : client.getClientStubCache()) {
-           System.out.println("Calling do Move on other client : " + c.toString());
-            try {
+           //System.out.println("Calling do Move on other client : " + c.toString());
+        	try {
                 c.doMove(m);
-            } catch (RemoteException e) {
-                e.printStackTrace();
+                System.out.println("Move done : " + c.getName());
+        	} catch (RemoteException e) {
+                //e.printStackTrace();
                 toRefresh = true;
-            }
+        	}
         }
         
 

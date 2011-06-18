@@ -72,6 +72,7 @@ public class AlcatrazClient implements IClient {
         this.setClientStubCache(new LinkedList<IClient>());
         this.history = new ArrayList<Movement>();
         this.registered = false;
+        this.alcatraz.getWindow().setTitle(this.username);
     }
 
     public static void main(String args[]) {
@@ -446,4 +447,10 @@ public class AlcatrazClient implements IClient {
     public String toString() {
         return this.username;
     }
+
+    // Only for testing purposes.
+    @Override
+	public String getName() throws RemoteException {
+		return this.username;
+	}
 }

@@ -67,4 +67,9 @@ public class Movement implements Serializable {
     public int getCol() {
         return col;
     }
+    
+    @Override
+    public String toString() {
+    	return "Move of player " + player.getId(); 
+    }
 }
