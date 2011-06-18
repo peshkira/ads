@@ -27,6 +27,11 @@ public class ClientSynchronizer implements Runnable {
         this.setRun(true);
         this.client = client;
         this.initPrevIndex(numId);
+        try {
+            this.synchronize();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -42,6 +47,7 @@ public class ClientSynchronizer implements Runnable {
                 this.rebindStub();
                 
             } catch (InterruptedException e) {
+                LOG.warn("interrupted ex: {}", e.getMessage());
             }
         }
     }
@@ -53,6 +59,7 @@ public class ClientSynchronizer implements Runnable {
             if (stub != null) {
                 this.client.getClientStubCache().remove(this.prevIndex);
                 this.client.getClientStubCache().add(this.prevIndex, stub);
+                LOG.debug("Stub rebound");
             }
             
         } catch (Exception e) {
@@ -83,6 +90,7 @@ public class ClientSynchronizer implements Runnable {
         if (local.size() < remote.size()) {
             LOG.info("client is not up to date, synchronizing...");
             int diff = remote.size() - local.size();
+            LOG.info("diff is {}", diff);
             diff--; // fix index
             while (diff >= 0) {
                 Movement m = remote.get(diff);

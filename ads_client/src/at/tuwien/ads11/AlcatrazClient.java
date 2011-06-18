@@ -51,13 +51,15 @@ public class AlcatrazClient implements IClient {
     private Registry registry;
 
     private IClient stub;
-    
+
     private boolean registered;
     private boolean runningGame;
     private String hostingGame;
     private String joinedGame;
-    
+
     private ClientSynchronizer synchronizer;
+
+    private int numPlayers;
 
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
@@ -99,25 +101,26 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void startGame(Game game) throws RemoteException {
-        int numPlayers = game.getPlayers().size();
+        numPlayers = game.getPlayers().size();
         int numId = -1;
-        
+
         this.setClients(game.getPlayers());
         ClientMock tmp = new ClientMock(this.username, this.password);
 
         for (int i = 0; i < game.getPlayers().size(); i++) {
             if (tmp.getName().equals(game.getPlayers().get(i).getName())) {
                 numId = i;
+                clients.remove(i);
             }
         }
-        
-        this.clients.remove(tmp);
 
+        
         if (numId < 0 || numId > 3) {
             // TODO error handling
-            LOG.error("numId is out of Range");
+            LOG.error("numId is out of Range {}", numId);
         }
 
+        LOG.debug("My NumId is {}", numId);
         if (this.getClientStubCache().size() == 0) {
             this.initRemoteStubs(game.getPlayers());
         }
@@ -126,7 +129,7 @@ public class AlcatrazClient implements IClient {
         this.alcatraz.addMoveListener(new ClientMoveListener(this));
         this.alcatraz.start();
 
-        this.synchronizer = new ClientSynchronizer(this, 15000, numId);
+        this.synchronizer = new ClientSynchronizer(this, 5000, numId);
         Thread sync = new Thread(this.synchronizer);
         sync.start();
 
@@ -135,19 +138,39 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void doMove(Movement m) throws RemoteException {
-        if (this.getLocalHistory().size() == 0) {
-           this.applyMove(m);
-        } else {
+        if (this.getLocalHistory().size() != 0) {
             Movement lastKnown = this.getLocalHistory().get(this.getLocalHistory().size() - 1);
-            if (Math.abs(lastKnown.getPlayer().getId() - m.getPlayer().getId()) > 1) {
-                LOG.warn("Something must have gone wrong. Last known player id is {}, moving player id was {}",
-                        lastKnown.getPlayer().getId(), m.getPlayer().getId());
+            if (m.getPlayer().getId() != this.getExpectedTurnId(lastKnown.getPlayer().getId())) {
+                LOG.warn("Something must have gone wrong. Expected player id is {}, moving player id was {}",
+                        this.getExpectedTurnId(lastKnown.getPlayer().getId()), m.getPlayer().getId());
                 this.synchronizer.synchronize();
             } else {
                 this.applyMove(m);
             }
+        } else {
+            this.applyMove(m);
         }
 
+    }
+
+    private int getExpectedTurnId(int lastKnown) {
+        int result = -1;
+        switch (lastKnown) {
+        case 0:
+            result = 1;
+            break;
+        case 1:
+            result = (numPlayers == 2) ? 0 : 2;
+            break;
+        case 2:
+            result = (numPlayers == 3) ? 0 : 3;
+            break;
+        case 3:
+            result = 0;
+            break;
+        }
+
+        return result;
     }
 
     @Override
@@ -160,9 +183,10 @@ public class AlcatrazClient implements IClient {
     }
 
     public void shutdown() {
+        this.synchronizer.setRun(false);
         this.alcatraz.disposeWindow();
         try {
-            UnicastRemoteObject.unexportObject(this.stub, true);
+            UnicastRemoteObject.unexportObject(this, true);
             UnicastRemoteObject.unexportObject(this.registry, true);
         } catch (NoSuchObjectException e) {
             e.printStackTrace();
@@ -170,12 +194,12 @@ public class AlcatrazClient implements IClient {
     }
 
     public void register() throws RemoteException {
-        if(registered) {
-        	System.out.println("You are already registered.");
-        	return;
+        if (registered) {
+            System.out.println("You are already registered.");
+            return;
         }
-        
-    	ClientMock mock = new ClientMock(this.username, this.password);
+
+        ClientMock mock = new ClientMock(this.username, this.password);
         mock.setHost(this.ip);
         mock.setPort(this.port);
         registered = this.server.register(mock);
@@ -187,12 +211,12 @@ public class AlcatrazClient implements IClient {
     }
 
     public void unregister() throws RemoteException {
-        if(!registered) {
-        	System.out.println("You have to register first.");
-        	return;
+        if (!registered) {
+            System.out.println("You have to register first.");
+            return;
         }
-        
-    	boolean unregister = this.server.unregister(this.username, this.password);
+
+        boolean unregister = this.server.unregister(this.username, this.password);
 
         if (unregister)
             System.out.println("You signed out successfully");
@@ -214,22 +238,23 @@ public class AlcatrazClient implements IClient {
 
     public void createGame(String name) throws RemoteException {
         // TODO: fix it on server side, set hostingGame via exception
-    	if(hostingGame != null) {
-        	System.out.println("You are already hosting game: " + hostingGame);
-        	return;
+        if (hostingGame != null) {
+            System.out.println("You are already hosting game: " + hostingGame);
+            return;
         }
-    	
-    	boolean created = this.server.createGame(name, this.username, this.password);
+
+        boolean created = this.server.createGame(name, this.username, this.password);
         if (created) {
-        	hostingGame = name;
-            System.out.println("You created a game successfully. Check out the games in order to see if somebody joined");
+            hostingGame = name;
+            System.out
+                    .println("You created a game successfully. Check out the games in order to see if somebody joined");
         } else
             System.out.println("The Game could not be created");
     }
 
     public void cancelGame(String name) throws RemoteException {
-        // TODO: nonexistent game exception, return hosted game if any 
-    	boolean cancelled = this.server.cancelGame(name, this.username, this.password);
+        // TODO: nonexistent game exception, return hosted game if any
+        boolean cancelled = this.server.cancelGame(name, this.username, this.password);
         if (cancelled)
             System.out.println("Game " + name + " was successfully cancelled.");
         else
@@ -237,19 +262,19 @@ public class AlcatrazClient implements IClient {
     }
 
     public void joinGame(String name) throws RemoteException {
-        if(hostingGame != null) {
-        	System.out.println("You can not join other games while you are hosting another(" + hostingGame + ")");
-        	return;
+        if (hostingGame != null) {
+            System.out.println("You can not join other games while you are hosting another(" + hostingGame + ")");
+            return;
         }
-        
-        if(joinedGame != null) {
-        	System.out.println("You have to leave game " + joinedGame + " first.");
-        	return;
+
+        if (joinedGame != null) {
+            System.out.println("You have to leave game " + joinedGame + " first.");
+            return;
         }
-        	
-    	boolean joined = this.server.joinGame(name, this.username, this.password);
+
+        boolean joined = this.server.joinGame(name, this.username, this.password);
         if (joined) {
-        	joinedGame = name;
+            joinedGame = name;
             System.out.println("You have successfully joined the game: " + name);
         } else
             System.out.println("Game " + name + " could not be joined.");
@@ -257,7 +282,7 @@ public class AlcatrazClient implements IClient {
 
     public void leaveGame(String name) throws RemoteException {
         // TODO: nonexistent game exception, return joined game if any
-    	boolean left = this.server.leaveGame(name, this.username, this.password);
+        boolean left = this.server.leaveGame(name, this.username, this.password);
         if (left)
             System.out.println("You have left the game: " + name);
         else
@@ -266,18 +291,18 @@ public class AlcatrazClient implements IClient {
 
     // Server
     public void startGame(String name) throws RemoteException {
-    	if(runningGame) {
-    		System.out.println("You are already running game: " + hostingGame != null ? hostingGame : joinedGame);
-    		return;
-    	}
-    	Game game = this.server.startGame(name, this.username, this.password);
-    	
-    	// IF rejoining running game...
-        if(name.length() < 1) {
-        	this.startGame(game);
-        	System.out.println("Game: " + game.getName() + " rejoined.");
-        	runningGame = true;
-        	return;
+        if (runningGame) {
+            System.out.println("You are already running game: " + hostingGame != null ? hostingGame : joinedGame);
+            return;
+        }
+        Game game = this.server.startGame(name, this.username, this.password);
+
+        // IF rejoining running game...
+        if (name.length() < 1) {
+            this.startGame(game);
+            System.out.println("Game: " + game.getName() + " rejoined.");
+            runningGame = true;
+            return;
 
         }
 
@@ -327,10 +352,34 @@ public class AlcatrazClient implements IClient {
     }
 
     public IClient getStub(ClientMock client) throws Exception {
+        LOG.debug("Getting Stub of {}:{}", client.getHost(), client.getPort());
         IClient clientStub = (IClient) Naming.lookup("rmi://" + client.getHost() + ":" + client.getPort() + "/"
                 + Constants.REMOTE_CLIENT_OBJECT_NAME);
 
         return clientStub;
+    }
+    
+    public boolean refreshCache() {
+        List<IClient> cache = new ArrayList<IClient>();
+        for (ClientMock client : clients) {
+            if (client.getName().equals(this.username))
+                continue;
+            else {
+                try {
+                    IClient clientStub = this.getStub(client);
+                    cache.add(clientStub);
+                } catch (Exception e) {
+                }
+            }
+        }
+        
+        if (cache.size() == clientStubCache.size()) {
+            System.out.println("refresh cache");
+            this.setClientStubCache(cache);
+            return true;
+        }
+        
+        return false;
     }
 
     private void callStartGameOnClient(IClient clientStub, Game game) {
@@ -383,7 +432,7 @@ public class AlcatrazClient implements IClient {
         LOG.info("applying movement: {}", m);
         this.alcatraz.doMove(m.getPlayer(), m.getPrisoner(), m.getRowOrCol(), m.getRow(), m.getCol());
         this.history.add(m);
-        
+
     }
 
     public void setClients(List<ClientMock> clients) {
@@ -392,5 +441,9 @@ public class AlcatrazClient implements IClient {
 
     public List<ClientMock> getClients() {
         return clients;
+    }
+    
+    public String toString() {
+        return this.username;
     }
 }
