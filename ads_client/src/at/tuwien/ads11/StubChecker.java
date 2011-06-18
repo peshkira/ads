@@ -23,6 +23,7 @@ public class StubChecker extends Thread {
                     IClient stub = this.client.getStub(this.client.getClients().get(i));
                     if (stub != null) {
                         this.client.getCache().put(i, stub);
+                        System.out.println("STUB FOR " + i + " is rebound");
                         iter.remove();
                     }
                 } catch (Exception e) {

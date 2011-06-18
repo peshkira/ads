@@ -31,6 +31,8 @@ public class ClientMoveListener implements MoveListener {
 
         for (Integer idx : client.getCache().keySet()) {
             IClient stub = client.getCache().get(idx);
+            if (stub == null)
+                continue;
             MovePropagator propagator = new MovePropagator(stub, m, idx);
             Thread t = new Thread(propagator);
             t.start();
@@ -67,6 +69,7 @@ public class ClientMoveListener implements MoveListener {
             try {
                 this.stub.doMove(m);
             } catch (RemoteException e) {
+                System.out.println("DO MOVE FAILED ON: " + idx);
                 ClientMoveListener.this.client.getFailedPeers().add(idx);
             }
         }

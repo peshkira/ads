@@ -86,15 +86,14 @@ public class ClientSynchronizer implements Runnable {
 
     private List<Movement> getDelta(List<Movement> local, List<Movement> remote) {
         List<Movement> delta = new ArrayList<Movement>();
-
+        
         if (local.size() < remote.size()) {
             LOG.info("client is not up to date, synchronizing...");
             int diff = remote.size() - local.size();
             LOG.info("diff is {}", diff);
-            diff--; // fix index
-            while (diff >= 0) {
-                Movement m = remote.get(diff);
-                delta.add(0, m);
+            while (diff > 0) {
+                Movement m = remote.get(remote.size() - diff);
+                delta.add(m);
                 diff--;
             }
         }
