@@ -12,6 +12,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -73,7 +74,7 @@ public class AlcatrazClient implements IClient {
         this.port = Integer.parseInt(props.getProperty("client.port"));
         this.proxyIp = props.getProperty("proxy.ip");
         this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
-        this.history = new ArrayList<Movement>();
+        this.history = Collections.synchronizedList(new ArrayList<Movement>());
         this.registered = false;
         this.alcatraz.getWindow().setTitle(this.username);
         this.cache = new HashMap<Integer, IClient>();

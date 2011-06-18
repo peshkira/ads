@@ -74,7 +74,7 @@ public class ClientSynchronizer implements Runnable {
 
         List<Movement> delta = this.getDelta(local, remote);
         this.applyDelta(delta);
-
+        LOG.debug("synchronizing finished");
     }
 
     private void applyDelta(List<Movement> delta) {
