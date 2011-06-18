@@ -415,6 +415,8 @@ public class AlcatrazClient implements IClient {
     public void applyMove(Movement m) {
         LOG.info("applying movement: {}", m);
         this.alcatraz.doMove(m.getPlayer(), m.getPrisoner(), m.getRowOrCol(), m.getRow(), m.getCol());
+        this.alcatraz.getGameBoard().repaint();
+        this.alcatraz.getWindow().repaint();
         this.history.add(m);
 
     }

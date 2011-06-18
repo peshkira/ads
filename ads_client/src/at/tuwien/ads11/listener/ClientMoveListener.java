@@ -31,19 +31,11 @@ public class ClientMoveListener implements MoveListener {
     public void moveDone(Player player, Prisoner prisoner, int rowOrCol, int row, int col) {
         Movement m = new Movement(player, prisoner, rowOrCol, row, col);
         client.getLocalHistory().add(m);
-        
-        for (Integer idx : client.getCache().keySet()) {
-           //System.out.println("Calling do Move on other client : " + c.toString());
-        	try {
-        	    IClient stub = client.getCache().get(idx);
-        	    if (stub != null) {
-        	        stub.doMove(m);
-        	        System.out.println("Move done : " + stub.getName());
-        	    }
-        	} catch (RemoteException e) {
-        	    this.refreshStub(idx);
-        	}
-        }
+       
+        MovePropagator propagator = new MovePropagator(m);
+        Thread t = new Thread(propagator);
+        t.start();
+       
     }
     
     private void refreshStub(int idx) {
@@ -55,6 +47,32 @@ public class ClientMoveListener implements MoveListener {
         } catch (Exception e) {
             System.out.println("refresh was unsuccessful!");
         }
+    }
+    
+    private class MovePropagator implements Runnable {
+        
+        private Movement m;
+
+        private MovePropagator(Movement m) {
+            this.m = m;
+        }
+
+        @Override
+        public void run() {
+            for (Integer idx : client.getCache().keySet()) {
+                //System.out.println("Calling do Move on other client : " + c.toString());
+                 try {
+                     IClient stub = client.getCache().get(idx);
+                     if (stub != null) {
+                         stub.doMove(this.m);
+                         System.out.println("Move done : " + stub.getName());
+                     }
+                 } catch (RemoteException e) {
+                     ClientMoveListener.this.refreshStub(idx);
+                 }
+             }
+        }
+        
     }
 
 }
