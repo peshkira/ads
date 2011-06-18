@@ -316,6 +316,8 @@ public class ReplicatedServer implements IServer {
         this.requests.remove(uuid); // not needed anymore
 
         //can be null
+        if(result.getName().equals(ServerConstants.NONEXISTING_GAME))
+        	return null;
         return result;
 
     }
@@ -343,8 +345,8 @@ public class ReplicatedServer implements IServer {
             this.state.addRunningGame(start);
             return this.anonymizeGame(start);
         }
-
-        return null;
+        start = new Game(ServerConstants.NONEXISTING_GAME, "", "");
+        return start;
     }
 
     @Override
