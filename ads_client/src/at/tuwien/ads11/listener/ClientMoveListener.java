@@ -10,14 +10,11 @@ import at.tuwien.ads11.IClient;
 import at.tuwien.ads11.remote.Movement;
 
 public class ClientMoveListener implements MoveListener {
-    
+
     private AlcatrazClient client;
-    
-    private boolean toRefresh;
-    
+
     public ClientMoveListener(AlcatrazClient client) {
         this.client = client;
-        this.toRefresh = false;
     }
 
     @Override
@@ -31,13 +28,15 @@ public class ClientMoveListener implements MoveListener {
     public void moveDone(Player player, Prisoner prisoner, int rowOrCol, int row, int col) {
         Movement m = new Movement(player, prisoner, rowOrCol, row, col);
         client.getLocalHistory().add(m);
-       
-        MovePropagator propagator = new MovePropagator(m);
-        Thread t = new Thread(propagator);
-        t.start();
-       
+
+        for (Integer idx : client.getCache().keySet()) {
+            IClient stub = client.getCache().get(idx);
+            MovePropagator propagator = new MovePropagator(stub, m, idx);
+            Thread t = new Thread(propagator);
+            t.start();
+        }
     }
-    
+
     private void refreshStub(int idx) {
         try {
             IClient stub = this.client.getStub(this.client.getClients().get(idx));
@@ -48,31 +47,30 @@ public class ClientMoveListener implements MoveListener {
             System.out.println("refresh was unsuccessful!");
         }
     }
-    
+
     private class MovePropagator implements Runnable {
-        
+
+        private IClient stub;
+
         private Movement m;
 
-        private MovePropagator(Movement m) {
+        private int idx;
+
+        private MovePropagator(IClient stub, Movement m, int idx) {
+            this.stub = stub;
             this.m = m;
+            this.idx = idx;
         }
 
         @Override
         public void run() {
-            for (Integer idx : client.getCache().keySet()) {
-                //System.out.println("Calling do Move on other client : " + c.toString());
-                 try {
-                     IClient stub = client.getCache().get(idx);
-                     if (stub != null) {
-                         stub.doMove(this.m);
-                         System.out.println("Move done : " + stub.getName());
-                     }
-                 } catch (RemoteException e) {
-                     ClientMoveListener.this.refreshStub(idx);
-                 }
-             }
+            try {
+                this.stub.doMove(m);
+            } catch (RemoteException e) {
+                ClientMoveListener.this.refreshStub(idx);
+            }
         }
-        
+
     }
 
 }
