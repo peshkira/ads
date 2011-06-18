@@ -12,9 +12,11 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -45,8 +47,10 @@ public class AlcatrazClient implements IClient {
     private int proxyPort;
 
     private List<ClientMock> clients;
-    private List<IClient> clientStubCache;
+//    private List<IClient> clientStubCache;
     private List<Movement> history;
+    
+    private Map<Integer, IClient> cache;
 
     private Registry registry;
 
@@ -69,10 +73,10 @@ public class AlcatrazClient implements IClient {
         this.port = Integer.parseInt(props.getProperty("client.port"));
         this.proxyIp = props.getProperty("proxy.ip");
         this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
-        this.setClientStubCache(new LinkedList<IClient>());
         this.history = new ArrayList<Movement>();
         this.registered = false;
         this.alcatraz.getWindow().setTitle(this.username);
+        this.cache = new HashMap<Integer, IClient>();
     }
 
     public static void main(String args[]) {
@@ -104,14 +108,18 @@ public class AlcatrazClient implements IClient {
     public void startGame(Game game) throws RemoteException {
         numPlayers = game.getPlayers().size();
         int numId = -1;
-
-        this.setClients(game.getPlayers());
+        
+        this.setClients(clients);
+        
+        if (this.cache.size() == 0) {
+            this.initRemoteStubs(game.getPlayers());
+        }
+        
         ClientMock tmp = new ClientMock(this.username, this.password);
 
         for (int i = 0; i < game.getPlayers().size(); i++) {
             if (tmp.getName().equals(game.getPlayers().get(i).getName())) {
                 numId = i;
-                clients.remove(i);
             }
         }
 
@@ -122,9 +130,7 @@ public class AlcatrazClient implements IClient {
         }
 
         LOG.debug("My NumId is {}", numId);
-        if (this.getClientStubCache().size() == 0) {
-            this.initRemoteStubs(game.getPlayers());
-        }
+        
 
         this.alcatraz.init(numPlayers, numId);
         this.alcatraz.addMoveListener(new ClientMoveListener(this));
@@ -284,9 +290,10 @@ public class AlcatrazClient implements IClient {
     public void leaveGame(String name) throws RemoteException {
         // TODO: nonexistent game exception, return joined game if any
         boolean left = this.server.leaveGame(name, this.username, this.password);
-        if (left)
+        if (left) {
             System.out.println("You have left the game: " + name);
-        else
+            joinedGame = null;
+        } else
             System.out.println("Game " + name + " could not be left.");
     }
 
@@ -310,8 +317,10 @@ public class AlcatrazClient implements IClient {
         if (game != null) {
             this.initRemoteStubs(game.getPlayers());
 
-            for (IClient c : this.getClientStubCache()) {
-                callStartGameOnClient(c, game);
+            for (IClient c : this.getCache().values()) {
+                if (c != null) {
+                    callStartGameOnClient(c, game);
+                }
             }
             runningGame = true;
             this.startGame(game);
@@ -321,32 +330,36 @@ public class AlcatrazClient implements IClient {
     }
 
     private void initRemoteStubs(List<ClientMock> clients) {
-        List<ClientMock> unreachableClients = new ArrayList<ClientMock>();
+        List<Integer> unreachableClients = new ArrayList<Integer>();
+        int i = 0;
         for (ClientMock client : clients) {
-            if (client.getName().equals(this.username))
+            if (client.getName().equals(this.username)) {
+                this.cache.put(i, null);
                 continue;
-            else {
+            } else {
                 try {
                     IClient clientStub = this.getStub(client);
-                    getClientStubCache().add(clientStub);
+                    this.cache.put(i, clientStub);
+                    
                 } catch (Exception e) {
-                    unreachableClients.add(client);
+                    unreachableClients.add(i);
                 }
 
             }
         }
 
         while (!unreachableClients.isEmpty()) {
-            Iterator<ClientMock> it = unreachableClients.iterator();
+            Iterator<Integer> it = unreachableClients.iterator();
             while (it.hasNext()) {
                 try {
-                    IClient stub = this.getStub(it.next());
+                    int idx = it.next();
+                    IClient stub = this.getStub(clients.get(idx));
                     if (stub != null) {
                         it.remove();
-                        getClientStubCache().add(stub);
+                        this.cache.put(idx, stub);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOG.debug("could not obtain stub, still synchronizing");
                 }
             }
         }
@@ -360,28 +373,28 @@ public class AlcatrazClient implements IClient {
         return clientStub;
     }
     
-    public boolean refreshCache() {
-        List<IClient> cache = new ArrayList<IClient>();
-        for (ClientMock client : clients) {
-            if (client.getName().equals(this.username))
-                continue;
-            else {
-                try {
-                    IClient clientStub = this.getStub(client);
-                    cache.add(clientStub);
-                } catch (Exception e) {
-                }
-            }
-        }
-        
-        if (cache.size() == clientStubCache.size()) {
-            System.out.println("refresh cache");
-            this.setClientStubCache(cache);
-            return true;
-        }
-        
-        return false;
-    }
+//    public boolean refreshCache() {
+//        List<IClient> cache = new ArrayList<IClient>();
+//        for (ClientMock client : clients) {
+//            if (client.getName().equals(this.username))
+//                continue;
+//            else {
+//                try {
+//                    IClient clientStub = this.getStub(client);
+//                    cache.add(clientStub);
+//                } catch (Exception e) {
+//                }
+//            }
+//        }
+//        
+//        if (cache.size() == clientStubCache.size()) {
+//            System.out.println("refresh cache");
+//            this.setClientStubCache(cache);
+//            return true;
+//        }
+//        
+//        return false;
+//    }
 
     private void callStartGameOnClient(IClient clientStub, Game game) {
         try {
@@ -421,14 +434,6 @@ public class AlcatrazClient implements IClient {
         }
     }
 
-    public void setClientStubCache(List<IClient> clientStubCache) {
-        this.clientStubCache = clientStubCache;
-    }
-
-    public List<IClient> getClientStubCache() {
-        return clientStubCache;
-    }
-
     public void applyMove(Movement m) {
         LOG.info("applying movement: {}", m);
         this.alcatraz.doMove(m.getPlayer(), m.getPrisoner(), m.getRowOrCol(), m.getRow(), m.getCol());
@@ -436,14 +441,6 @@ public class AlcatrazClient implements IClient {
 
     }
 
-    public void setClients(List<ClientMock> clients) {
-        this.clients = clients;
-    }
-
-    public List<ClientMock> getClients() {
-        return clients;
-    }
-    
     public String toString() {
         return this.username;
     }
@@ -453,4 +450,16 @@ public class AlcatrazClient implements IClient {
 	public String getName() throws RemoteException {
 		return this.username;
 	}
+
+    public Map<Integer, IClient> getCache() {
+        return this.cache;
+    }
+
+    public void setClients(List<ClientMock> clients) {
+        this.clients = clients;
+    }
+
+    public List<ClientMock> getClients() {
+        return clients;
+    }
 }

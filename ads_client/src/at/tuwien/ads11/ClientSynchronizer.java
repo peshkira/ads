@@ -57,9 +57,8 @@ public class ClientSynchronizer implements Runnable {
         try {
             IClient stub = this.client.getStub(mock);
             if (stub != null) {
-                this.client.getClientStubCache().remove(this.prevIndex);
-                this.client.getClientStubCache().add(this.prevIndex, stub);
-                LOG.debug("Stub rebound");
+                this.client.getCache().put(this.prevIndex, stub);
+                LOG.debug("Stub rebound at index: {}", this.prevIndex);
             }
             
         } catch (Exception e) {
@@ -69,7 +68,7 @@ public class ClientSynchronizer implements Runnable {
     }
 
     public synchronized void synchronize() throws RemoteException {
-        List<Movement> remote = client.getClientStubCache().get(this.getPrevIndex()).getHistory();
+        List<Movement> remote = client.getCache().get(this.getPrevIndex()).getHistory();
         List<Movement> local = client.getLocalHistory();
 
         List<Movement> delta = this.getDelta(local, remote);
@@ -105,7 +104,7 @@ public class ClientSynchronizer implements Runnable {
     private void initPrevIndex(int numId) {
         switch (numId) {
         case 0:
-            this.setPrevIndex(this.client.getClientStubCache().size() - 1);
+            this.setPrevIndex(this.client.getCache().size() - 1);
             break;
         case 1:
             this.setPrevIndex(0);

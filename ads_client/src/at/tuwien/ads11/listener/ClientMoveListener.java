@@ -32,23 +32,26 @@ public class ClientMoveListener implements MoveListener {
         Movement m = new Movement(player, prisoner, rowOrCol, row, col);
         client.getLocalHistory().add(m);
         
-        if (toRefresh) {
-            toRefresh = !client.refreshCache();
-        }
-        
-        System.out.println("size: " + client.getClientStubCache().size());
-        for (IClient c : client.getClientStubCache()) {
+        for (Integer idx : client.getCache().keySet()) {
            //System.out.println("Calling do Move on other client : " + c.toString());
         	try {
-                c.doMove(m);
-                System.out.println("Move done : " + c.getName());
+        	    IClient stub = client.getCache().get(idx);
+        	    if (stub != null) {
+        	        stub.doMove(m);
+        	        System.out.println("Move done : " + stub.getName());
+        	    }
         	} catch (RemoteException e) {
-                //e.printStackTrace();
-                toRefresh = true;
+        	    this.refreshStub(idx);
         	}
         }
-        
-
+    }
+    
+    private void refreshStub(int idx) {
+        try {
+            this.client.getStub(this.client.getClients().get(idx));
+        } catch (Exception e) {
+            System.out.println("refresh was unsuccessful!");
+        }
     }
 
 }
