@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -48,7 +47,7 @@ public class AlcatrazClient implements IClient {
     private int proxyPort;
 
     private List<ClientMock> clients;
-    // private List<IClient> clientStubCache;
+    private List<Integer> failedPeers;
     private List<Movement> history;
 
     private Map<Integer, IClient> cache;
@@ -66,6 +65,8 @@ public class AlcatrazClient implements IClient {
 
     private int numPlayers;
 
+    private StubChecker checker;
+
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
         this.username = props.getProperty("client.username");
@@ -78,6 +79,7 @@ public class AlcatrazClient implements IClient {
         this.registered = false;
         this.alcatraz.getWindow().setTitle(this.username);
         this.cache = new HashMap<Integer, IClient>();
+        this.failedPeers = Collections.synchronizedList(new ArrayList<Integer>());
     }
 
     public static void main(String args[]) {
@@ -136,8 +138,10 @@ public class AlcatrazClient implements IClient {
         this.alcatraz.start();
 
         this.synchronizer = new ClientSynchronizer(this, 5000, numId);
+        this.checker = new StubChecker(this);
         Thread sync = new Thread(this.synchronizer);
         sync.start();
+        this.checker.start();
 
         this.alcatraz.showWindow();
     }
@@ -190,6 +194,7 @@ public class AlcatrazClient implements IClient {
 
     public void shutdown() {
         this.synchronizer.setRun(false);
+        this.checker.setRun(false);
         this.alcatraz.disposeWindow();
         try {
             UnicastRemoteObject.unexportObject(this, true);
@@ -441,5 +446,9 @@ public class AlcatrazClient implements IClient {
 
     public List<ClientMock> getClients() {
         return clients;
+    }
+
+    public List<Integer> getFailedPeers() {
+        return this.failedPeers;
     }
 }

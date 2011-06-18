@@ -37,16 +37,16 @@ public class ClientMoveListener implements MoveListener {
         }
     }
 
-    private void refreshStub(int idx) {
-        try {
-            IClient stub = this.client.getStub(this.client.getClients().get(idx));
-            if (stub != null) {
-                this.client.getCache().put(idx, stub);
-            }
-        } catch (Exception e) {
-            System.out.println("refresh was unsuccessful!");
-        }
-    }
+//    private void refreshStub(int idx) {
+//        try {
+//            IClient stub = this.client.getStub(this.client.getClients().get(idx));
+//            if (stub != null) {
+//                this.client.getCache().put(idx, stub);
+//            }
+//        } catch (Exception e) {
+//            System.out.println("refresh was unsuccessful!");
+//        }
+//    }
 
     private class MovePropagator implements Runnable {
 
@@ -67,7 +67,7 @@ public class ClientMoveListener implements MoveListener {
             try {
                 this.stub.doMove(m);
             } catch (RemoteException e) {
-                ClientMoveListener.this.refreshStub(idx);
+                ClientMoveListener.this.client.getFailedPeers().add(idx);
             }
         }
 
