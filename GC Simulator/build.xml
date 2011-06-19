@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="GC Simulator" default="run.simulations" basedir=".">
+  <property name="build.dir" value="build" />
+  <property name="src.dir" value="src" />
+
+  <path id="classpath">
+    <fileset dir="lib">
+      <include name="**/*.jar"/>
+      <include name="**/*.zip"/>
+    </fileset>
+    <pathelement location="${build.dir}/classes"/>
+    <pathelement location="GC_Simulator.jar" />
+  </path>
+
+  <target name="compile">
+    <mkdir dir="${build.dir}/classes"/>
+    <javac srcdir="${src.dir}" destdir="${build.dir}/classes" debug="true">
+      <classpath refid="classpath" />
+    </javac>
+  </target>
+
+  <target name="run.example" depends="compile" description="Runs the example protocol.">
+    <java classname="net.froihofer.teaching.gc.sim.Simulator" fork="true">
+      <classpath refid="classpath"/>
+      <arg file="${src.dir}/net/froihofer/teaching/gc/examples/unreliable.properties"/>
+    </java>
+  </target>
+
+  <target name="run.non-uniform-reliable" depends="compile" description="Runs the non-uniform reliable protocol.">
+    <java classname="net.froihofer.teaching.gc.sim.Simulator" fork="true">
+      <classpath refid="classpath"/>
+      <arg file="${src.dir}/ads/gc/nonuniformreliable/nonuniform.properties"/>
+    </java>
+  </target>
+
+  <target name="run.uniform-reliable" depends="compile" description="Runs the uniform reliable protocol.">
+    <java classname="net.froihofer.teaching.gc.sim.Simulator" fork="true">
+      <classpath refid="classpath"/>
+      <arg file="${src.dir}/ads/gc/uniformreliable/uniform.properties"/>
+    </java>
+  </target>
+
+  <target name="run.fifo" depends="compile"  description="Runs the fifo order protocol.">
+    <java classname="net.froihofer.teaching.gc.sim.Simulator" fork="true">
+      <classpath refid="classpath"/>
+      <arg file="${src.dir}/ads/gc/fifo/fifo.properties"/>
+    </java>
+  </target>
+
+  <target name="run.causal" depends="compile"  description="Runs the causal order protocol.">
+    <java classname="net.froihofer.teaching.gc.sim.Simulator" fork="true">
+      <classpath refid="classpath"/>
+      <arg file="${src.dir}/ads/gc/causal/causal.properties"/>
+    </java>
+  </target>
+
+  <target name="run.total" depends="compile"  description="Runs the total order protocol.">
+    <java classname="net.froihofer.teaching.gc.sim.Simulator" fork="true">
+      <classpath refid="classpath"/>
+      <arg file="${src.dir}/ads/gc/total/total.properties"/>
+    </java>
+  </target>
+
+  <target name="run.simulations" depends="run.non-uniform-reliable,run.uniform-reliable,run.fifo,run.causal,run.total"/>
+
+  <target name="clean">
+    <delete dir="${build.dir}"/>
+  </target>
+
+  <target name="submission" description="Builds the submission package.">
+    <mkdir dir="${build.dir}" />
+    <zip destfile="${build.dir}/gc_submission.zip">
+      <fileset dir="${basedir}">
+        <exclude name="GC_Simulator.jar" />
+        <exclude name="${build.dir}/**" />
+        <exclude name="lib/commons-logging*.jar"/>
+        <exclude name="lib/log4j*.jar"/>
+      </fileset>
+    </zip>
+  </target>
+
+</project>
