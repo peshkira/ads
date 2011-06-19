@@ -30,6 +30,7 @@ import at.tuwien.ads11.remote.ClientMock;
 import at.tuwien.ads11.remote.Game;
 import at.tuwien.ads11.remote.IServer;
 import at.tuwien.ads11.remote.Movement;
+import at.tuwien.ads11.rmi.TimeoutSocketFactory;
 
 public class AlcatrazClient implements IClient {
 
@@ -409,9 +410,11 @@ public class AlcatrazClient implements IClient {
 
     public IClient getStub(ClientMock client) throws Exception {
         LOG.debug("Getting Stub of {}:{}", client.getHost(), client.getPort());
-        IClient clientStub = (IClient) Naming.lookup("rmi://" + client.getHost() + ":" + client.getPort() + "/"
-                + Constants.REMOTE_CLIENT_OBJECT_NAME);
-
+        //IClient clientStub = (IClient) Naming.lookup("rmi://" + client.getHost() + ":" + client.getPort() + "/"
+        //        + Constants.REMOTE_CLIENT_OBJECT_NAME);
+        Registry registry = LocateRegistry.getRegistry(client.getHost(), client.getPort());
+        IClient clientStub = (IClient)registry.lookup(Constants.REMOTE_CLIENT_OBJECT_NAME);
+        
         return clientStub;
     }
 
@@ -432,7 +435,8 @@ public class AlcatrazClient implements IClient {
     private void startRMIRegistry() {
         try {
             this.registry = LocateRegistry.createRegistry(this.port);
-            this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0);
+            //this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0);
+            this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0, new TimeoutSocketFactory(100), new TimeoutSocketFactory(100));
             this.registry.rebind(Constants.REMOTE_CLIENT_OBJECT_NAME, this.stub);
         } catch (RemoteException e) {
             e.printStackTrace();
