@@ -40,7 +40,7 @@ public class UniformReliableProtocol implements TransportListener, GroupCommunic
           MessageMock mock = new MessageMock(msg.getId(), msg.getSenderId());
           boolean added = this.received.add(mock);
           if (added) {
-              log.debug(this.l() + "message is not known, deliver and start flooding...");
+              log.debug(this.l() + "message is not known, start flooding...");
               // first multicast to others and
               // only if done than deliver
               this.multicast(msg);

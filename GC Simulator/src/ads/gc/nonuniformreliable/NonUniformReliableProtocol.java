@@ -49,7 +49,7 @@ public class NonUniformReliableProtocol implements TransportListener, GroupCommu
                 // afterwards.
                 this.myProcess.deliver(msg);
                 this.multicast(msg);
-                log.debug(this.l() + "message is multicasted to all others, delivering...");
+                log.debug(this.l() + "message is multicasted to all others");
             } else {
                 log.debug(this.l() + "already knows this message");
             }

@@ -1,13 +1,14 @@
 package ads.gc.nonuniformreliable;
 
-import net.froihofer.teaching.gc.sim.api.ProcessSim;
-import net.froihofer.teaching.gc.sim.api.EventType;
-import net.froihofer.teaching.gc.sim.api.Event;
-import net.froihofer.teaching.gc.sim.api.TestProvider;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
 import net.froihofer.teaching.gc.framework.api.Message;
+import net.froihofer.teaching.gc.sim.api.Event;
+import net.froihofer.teaching.gc.sim.api.EventType;
+import net.froihofer.teaching.gc.sim.api.ProcessSim;
+import net.froihofer.teaching.gc.sim.api.TestProvider;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -25,19 +26,20 @@ public class TestProviderNonUniformReliable implements TestProvider {
 
     public List<Event> getTestData(int numProcs) {
         List<Event> events = new ArrayList<Event>();
-        Event e = new Event(0, EventType.SEND, new Message(0, 0, "Hello World!"));
-        events.add(e);
-
+        if (numProcs > 0) {
+            Event e = new Event(0, EventType.SEND, new Message(0, 0, "Hello World!"));
+            events.add(e);
+        }
         return events;
     }
 
     public boolean checkResult(ProcessSim[] processes) {
-        long delivered = -1; 
+        long delivered = -1;
         for (ProcessSim p : processes) {
             if (!p.isCrashed()) {
                 int procDel = p.getDeliveredMessages().size();
                 if (delivered == -1) {
-                    delivered = procDel; 
+                    delivered = procDel;
                 } else if (delivered != procDel) {
                     log.error("Process " + p.getId() + " delivered different count of messages");
                     return false;
