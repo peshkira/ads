@@ -57,9 +57,10 @@ public class ClientConsole implements Runnable {
 	            System.out.println("unregister \t\t- unregister with the server");
 	            System.out.println("games \t\t\t- fetch the open games");
 	            System.out.println("create [game name] \t- create a new game");
-	            System.out.println("cancel [game name] \t- cancel the game");
+	            //System.out.println("cancel [game name] \t- cancel the game");
 	            System.out.println("join [game name] \t- join a new game");
 	            System.out.println("leave [game name] \t- leave the game");
+	            System.out.println("start \t\t\t- rejoin running game");
 	            System.out.println("start [game name] \t- start a game that you host");
 	            System.out.println("exit \t\t\t- exit the application");
 	        } else if (line.equals("register")) {
@@ -72,8 +73,8 @@ public class ClientConsole implements Runnable {
 	            
 	        } else if (line.startsWith("create ")) {
 	        	client.createGame(line.replaceFirst("create ", ""));
-	        } else if (line.startsWith("cancel ")) {
-	            client.startGame(line.replaceFirst("cancel ", ""));
+	        //} else if (line.startsWith("cancel ")) {
+	        //    client.startGame(line.replaceFirst("cancel ", ""));
 	            
 	        } else if (line.startsWith("join ")) {
 	            client.joinGame(line.replaceFirst("join ", ""));

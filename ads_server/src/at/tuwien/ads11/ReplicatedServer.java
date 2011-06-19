@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -236,7 +237,17 @@ public class ReplicatedServer implements IServer {
     public boolean createGame(Game g) {
         ClientMock c = new ClientMock(g.getHost(), g.getPass());
         if (this.state.getClients().contains(c) && c.getPass().equals(g.getPass())) {
-            for (ClientMock tmp : this.state.getClients()) {
+            // Check if client is hosting any other game
+        	for(Game tmp : this.state.getGames())
+        		if (tmp.getHost().equals(c.getName()))
+        			return false;
+        	
+        	// Check if client is hosting any other running game
+        	for(Game tmp : this.state.getPlaying())
+        		if (tmp.getHost().equals(c.getName()))
+        			return false;
+        	
+        	for (ClientMock tmp : this.state.getClients()) {
                 if (tmp.equals(c)) {
                     g.getPlayers().add(tmp);
                     return this.state.addGame(g);
@@ -281,8 +292,8 @@ public class ReplicatedServer implements IServer {
 
     public boolean cancelGame(Game g) {
         ClientMock c = new ClientMock(g.getHost(), g.getPass());
-        if (this.state.getClients().contains(c) && this.state.getGames().contains(g)) {
-            return this.state.removeGame(g);
+        if (this.state.getClients().contains(c) && this.state.getPlaying().contains(g)) {
+            return this.state.removeRunningGame(g);
         }
 
         return false;
@@ -316,7 +327,7 @@ public class ReplicatedServer implements IServer {
         this.requests.remove(uuid); // not needed anymore
 
         //can be null
-        if(result.getName().equals(ServerConstants.NONEXISTING_GAME))
+        if(result.getName().equals(ServerConstants.GAME_NONEXISTING))
         	return null;
         return result;
 
@@ -344,8 +355,10 @@ public class ReplicatedServer implements IServer {
             this.state.removeGame(start);
             this.state.addRunningGame(start);
             return this.anonymizeGame(start);
+        } else if (this.state.getPlaying().contains(g)) {
+        	return new Game(ServerConstants.GAME_ALREADY_RUNNING, "", "");
         }
-        start = new Game(ServerConstants.NONEXISTING_GAME, "", "");
+        start = new Game(ServerConstants.GAME_NONEXISTING, "", "");
         return start;
     }
 
@@ -395,8 +408,10 @@ public class ReplicatedServer implements IServer {
         
         for (Game game : this.state.getGames()) {
             ClientMock client = game.containsPlayerName(tmp.getName());
-            if (game.getName().equals(g.getName()) && client == null) {
-                return game.getPlayers().add(tmp);
+            if (game.getName().equals(g.getName()) && client == null && game.getPlayers().size() < 4) {
+                if(game.getPlayers().size() == 3 && game.containsPlayerName(game.getHost()) == null)
+                	return false;
+            	return game.getPlayers().add(tmp);
             }
         }
 
@@ -438,11 +453,19 @@ public class ReplicatedServer implements IServer {
         ClientMock c = new ClientMock(g.getHost(), g.getPass());
 
         if (this.state.getClients().contains(c)) {
-            for (Game tmp : this.state.getGames()) {
-                if (tmp.getName().equals(g.getName())) {
-                    return tmp.getPlayers().remove(c);
-                }
-            }
+            Iterator<Game> it = this.state.getGames().iterator();
+        	while(it.hasNext())
+        	{
+        		Game tmp = it.next();
+        		if (tmp.getName().equals(g.getName())) {
+                	if(tmp.getPlayers().size() == 1) {
+                		LOG.debug("Game {} has no players left and is removed.", g.getName());
+                		it.remove();
+                	}
+                    LOG.debug("Player {} removed from game {}", c.getName(), g.getName());
+                	return tmp.getPlayers().remove(c);
+        		}
+        	}
         }
 
         return false;

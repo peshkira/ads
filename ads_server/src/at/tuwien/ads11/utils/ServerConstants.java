@@ -5,7 +5,10 @@ public final class ServerConstants {
     public static final String SPREAD_SERVER_GROUP = "serverGroup";
     public static final String SERVER_OBJECT = "replicated.server";
     
-    public static final String NONEXISTING_GAME="Alcatraz.nonexisting.game";
+    public static final String GAME_NONEXISTING="Alcatraz.game.nonexisting";
+    public static final String GAME_ALREADY_RUNNING="Alcatraz.already.running";
+    
+    public static final String USER_NOT_REGISTERED="You are not registered. Register first please.";
 
     public static final short MSG_GET_SERVER_REFERENCE = 10;
     public static final short MSG_GET_SERVER_REFERENCE_RESPONSE = 11;

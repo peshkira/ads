@@ -109,7 +109,10 @@ public class AlcatrazClient implements IClient {
 
     @Override
     public void startGame(Game game) throws RemoteException {
-        numPlayers = game.getPlayers().size();
+        if(game.getHost().equals(this.username))
+        	hostingGame = game.getName();
+        
+    	numPlayers = game.getPlayers().size();
         int numId = -1;
 
         this.setClients(game.getPlayers());
@@ -144,6 +147,22 @@ public class AlcatrazClient implements IClient {
         this.checker.start();
 
         this.alcatraz.showWindow();
+    }
+    
+    public void stopGame() {
+    	this.synchronizer.setRun(false);
+    	this.checker.setRun(false);
+    	this.alcatraz.disposeWindow();
+    	if(hostingGame != null) {
+			try {
+				this.cancelGame(hostingGame);
+				LOG.debug("Hoster {} cancelled the game.", this.username);
+			} catch (RemoteException e) {
+				LOG.debug("Finished game was not cancelled.");
+			}
+		}
+        this.resetFlags();
+    	
     }
 
     @Override
@@ -193,9 +212,11 @@ public class AlcatrazClient implements IClient {
     }
 
     public void shutdown() {
-        this.synchronizer.setRun(false);
-        this.checker.setRun(false);
-        this.alcatraz.disposeWindow();
+        if(runningGame) {
+        	this.synchronizer.setRun(false);
+        	this.checker.setRun(false);
+        	this.alcatraz.disposeWindow();
+        }
         try {
             UnicastRemoteObject.unexportObject(this, true);
             UnicastRemoteObject.unexportObject(this.registry, true);
@@ -222,10 +243,12 @@ public class AlcatrazClient implements IClient {
     }
 
     public void unregister() throws RemoteException {
-        if (!registered) {
+        /*
+    	if (!registered) {
             System.out.println("You have to register first.");
             return;
         }
+        */
 
         boolean unregister = this.server.unregister(this.username, this.password);
 
@@ -238,9 +261,11 @@ public class AlcatrazClient implements IClient {
 
     public void fetchGames() throws RemoteException {
         List<Game> games = this.server.fetchGames();
-        System.out.println("Name \t Nr. Players");
-        if (games.isEmpty())
+        if (games.isEmpty()) {
             System.out.println("No games available at the moment.");
+            return;
+        }
+        System.out.println("Name \t Nr. Players");
         for (Game g : games) {
             System.out.println(g.getName() + "\t" + g.getPlayers().size());
         }
@@ -248,8 +273,8 @@ public class AlcatrazClient implements IClient {
     }
 
     public void createGame(String name) throws RemoteException {
-        // TODO: fix it on server side, set hostingGame via exception
-        if (hostingGame != null) {
+        
+    	if (hostingGame != null) {
             System.out.println("You are already hosting game: " + hostingGame);
             return;
         }
@@ -264,7 +289,6 @@ public class AlcatrazClient implements IClient {
     }
 
     public void cancelGame(String name) throws RemoteException {
-        // TODO: nonexistent game exception, return hosted game if any
         boolean cancelled = this.server.cancelGame(name, this.username, this.password);
         if (cancelled)
             System.out.println("Game " + name + " was successfully cancelled.");
@@ -273,16 +297,18 @@ public class AlcatrazClient implements IClient {
     }
 
     public void joinGame(String name) throws RemoteException {
-        if (hostingGame != null) {
+        /*
+    	if (hostingGame != null) {
             System.out.println("You can not join other games while you are hosting another(" + hostingGame + ")");
             return;
         }
+        */
 
         if (joinedGame != null) {
             System.out.println("You have to leave game " + joinedGame + " first.");
             return;
         }
-
+        
         boolean joined = this.server.joinGame(name, this.username, this.password);
         if (joined) {
             joinedGame = name;
@@ -292,11 +318,11 @@ public class AlcatrazClient implements IClient {
     }
 
     public void leaveGame(String name) throws RemoteException {
-        // TODO: nonexistent game exception, return joined game if any
         boolean left = this.server.leaveGame(name, this.username, this.password);
         if (left) {
             System.out.println("You have left the game: " + name);
             joinedGame = null;
+            //hostingGame = null;
         } else
             System.out.println("Game " + name + " could not be left.");
     }
@@ -311,7 +337,11 @@ public class AlcatrazClient implements IClient {
 
         // IF rejoining running game...
         if (name.length() < 1) {
-            this.startGame(game);
+            if(game == null) {
+            	System.out.println("There is no game for you to rejoin.");
+            	return;
+            }
+        	this.startGame(game);
             System.out.println("Game: " + game.getName() + " rejoined.");
             runningGame = true;
             return;
@@ -425,14 +455,14 @@ public class AlcatrazClient implements IClient {
         this.history.add(m);
 
     }
-
-    public String toString() {
-        return this.username;
+    
+    public void resetFlags() {
+    	this.runningGame = false;
+    	this.joinedGame = null;
+    	this.hostingGame = null;
     }
 
-    // Only for testing purposes.
-    @Override
-    public String getName() throws RemoteException {
+    public String toString() {
         return this.username;
     }
 

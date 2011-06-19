@@ -1,6 +1,13 @@
 package at.tuwien.ads11.listener;
 
 import java.rmi.RemoteException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javax.net.ssl.HostnameVerifier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import at.falb.games.alcatraz.api.MoveListener;
 import at.falb.games.alcatraz.api.Player;
@@ -11,17 +18,21 @@ import at.tuwien.ads11.remote.Movement;
 
 public class ClientMoveListener implements MoveListener {
 
+	private static final Logger LOG = LoggerFactory.getLogger(ClientMoveListener.class);
+	
     private AlcatrazClient client;
+    
+    private ExecutorService threadPool;
 
     public ClientMoveListener(AlcatrazClient client) {
         this.client = client;
+        this.threadPool = Executors.newCachedThreadPool();
     }
 
     @Override
     public void gameWon(Player player) {
-        // TODO set all cleint flags to default
         System.out.println("We have a winner: " + player.getId());
-
+        this.client.stopGame();
     }
 
     @Override
@@ -33,9 +44,10 @@ public class ClientMoveListener implements MoveListener {
             IClient stub = client.getCache().get(idx);
             if (stub == null)
                 continue;
-            MovePropagator propagator = new MovePropagator(stub, m, idx);
-            Thread t = new Thread(propagator);
-            t.start();
+            //MovePropagator propagator = new MovePropagator(stub, m, idx);
+            //Thread t = new Thread(propagator);
+            //t.start();
+            threadPool.execute(new MovePropagator(stub, m, idx));
         }
     }
 
