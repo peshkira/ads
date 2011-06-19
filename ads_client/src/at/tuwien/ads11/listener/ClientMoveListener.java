@@ -26,7 +26,7 @@ public class ClientMoveListener implements MoveListener {
 
     public ClientMoveListener(AlcatrazClient client) {
         this.client = client;
-        this.threadPool = Executors.newCachedThreadPool();
+        this.threadPool = Executors.newFixedThreadPool(5);
     }
 
     @Override
