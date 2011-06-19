@@ -31,22 +31,9 @@ public class TestProviderUniformReliable implements TestProvider {
     return new ArrayList(Arrays.asList(new Event(0,EventType.SEND, new Message(0, 0, "Hello World!"))));
   }
 
-  /**
-   * Performs a simple, but faulty check of whether the protcol is reliable.
-   */
   public boolean checkResult(ProcessSim[] processes) {
-    for (ProcessSim p : processes) {
-      if (!p.isCrashed() && (p.getDeliveredMessages().size() != 1)) {
-        if (p.getDeliveredMessages().size() > 1) {
-          log.error("Process "+p.getId()+" delivered the message more than once.");
-        }
-        else {
-          log.error("Process "+p.getId()+" did not deliver the message.");
-        }
-        return false;
-      }
-    }
-    return true;
+      //TODO
+      return false;
   }
 
 }
