@@ -2,13 +2,20 @@ package ads.gc.uniformreliable;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import net.froihofer.teaching.gc.framework.api.GroupCommunication;
+import net.froihofer.teaching.gc.framework.api.Message;
 import net.froihofer.teaching.gc.framework.api.Process;
 import net.froihofer.teaching.gc.framework.api.Transport;
 import net.froihofer.teaching.gc.framework.api.TransportListener;
-import net.froihofer.teaching.gc.framework.api.Message;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import ads.gc.util.MessageMock;
 
 /**
  * This is just an example of an unreliable protocol demonstrating how to use 
@@ -23,15 +30,30 @@ public class UniformReliableProtocol implements TransportListener, GroupCommunic
   private Process myProcess;
   private Transport myTransport;
   private int[] processIds;
+  
+  private Set<MessageMock> received;
 
   public void receiveFrom(Serializable data, int senderProcessId) {
-    try {
-      Message msg = (Message)data;
-      myProcess.deliver(msg);
-    }
-    catch (Exception e) {
-      log.error("Failed to process received message.", e);
-    }
+      log.debug(this.l() + "received message from proc: " + senderProcessId);
+      try {
+          Message msg = (Message) data;
+          MessageMock mock = new MessageMock(msg.getId(), msg.getSenderId());
+          boolean added = this.received.add(mock);
+          if (added) {
+              log.debug(this.l() + "message is not known, deliver and start flooding...");
+              // first multicast to others and
+              // only if done than deliver
+              this.multicast(msg);
+              log.debug(this.l() + "message is multicasted to all others, delivering...");
+
+              this.myProcess.deliver(msg);
+          } else {
+              log.debug(this.l() + "already knows this message");
+          }
+
+      } catch (Exception e) {
+          log.error(this.l() + "Failed to process received message.", e);
+      }
   }
 
   public int getProcessId() {
@@ -42,11 +64,11 @@ public class UniformReliableProtocol implements TransportListener, GroupCommunic
     myProcess = process;
     myTransport = transport;
     this.processIds = processIds;
+    this.received = Collections.synchronizedSet(new HashSet<MessageMock>());
   }
 
   public void multicast(Message msg) {
     try {
-      msg.setSenderId(getProcessId());
       multicastOnTransport(msg);
     }
     catch (Exception e) {
@@ -58,6 +80,10 @@ public class UniformReliableProtocol implements TransportListener, GroupCommunic
     for (int receiverPid : processIds) {
       myTransport.unicast(msg, receiverPid);
     }
+  }
+  
+  private String l() {
+      return "[" + this.getProcessId() + "] ";
   }
 
 }

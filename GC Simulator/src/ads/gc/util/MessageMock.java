@@ -1,4 +1,4 @@
-package ads.gc.nonuniformreliable;
+package ads.gc.util;
 
 public class MessageMock {
 
