@@ -2,11 +2,16 @@ package ads.gc.nonuniformreliable;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import net.froihofer.teaching.gc.framework.api.GroupCommunication;
+import net.froihofer.teaching.gc.framework.api.Message;
 import net.froihofer.teaching.gc.framework.api.Process;
 import net.froihofer.teaching.gc.framework.api.Transport;
 import net.froihofer.teaching.gc.framework.api.TransportListener;
-import net.froihofer.teaching.gc.framework.api.Message;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -23,14 +28,30 @@ public class NonUniformReliableProtocol implements TransportListener, GroupCommu
   private Process myProcess;
   private Transport myTransport;
   private int[] processIds;
-
+  
+  private Set<MessageMock> received;
+  
   public void receiveFrom(Serializable data, int senderProcessId) {
+      log.debug(this.l() + "received message from proc: " + senderProcessId);
     try {
       Message msg = (Message)data;
-      myProcess.deliver(msg);
+      MessageMock mock = new MessageMock(msg.getId(), msg.getSenderId());
+      boolean added = this.received.add(mock);
+      if (added) {
+          log.debug(this.l() + "message is not known, start flooding...");
+          //if the multicast is successful
+          // I can deliver and be sure
+          // that each correct process will also deliver
+          this.multicast(msg);
+          log.debug(this.l() + "message is multicasted to all others, delivering...");
+          myProcess.deliver(msg);
+      } else {
+          log.debug(this.l() + "already knows this message");
+      }
+      
     }
     catch (Exception e) {
-      log.error("Failed to process received message.", e);
+      log.error(this.l() + "Failed to process received message.", e);
     }
   }
 
@@ -42,22 +63,27 @@ public class NonUniformReliableProtocol implements TransportListener, GroupCommu
     myProcess = process;
     myTransport = transport;
     this.processIds = processIds;
+    this.received = Collections.synchronizedSet(new HashSet<MessageMock>());
   }
 
   public void multicast(Message msg) {
     try {
-      msg.setSenderId(getProcessId());
       multicastOnTransport(msg);
     }
     catch (Exception e) {
-      log.error("Failed to send message.", e);
+      log.error(this.l() + "Failed to send message.", e);
     }
   }
 
   protected void multicastOnTransport(Message msg) throws IOException {
     for (int receiverPid : processIds) {
       myTransport.unicast(msg, receiverPid);
+      log.info(this.l() + "unicasted to " + receiverPid);
     }
+  }
+  
+  private String l() {
+      return "[" + this.getProcessId() + "] ";
   }
 
 }

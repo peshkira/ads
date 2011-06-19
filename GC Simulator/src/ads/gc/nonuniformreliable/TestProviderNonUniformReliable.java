@@ -13,36 +13,38 @@ import org.apache.commons.logging.LogFactory;
 
 /**
  * This is an example implemenation of a {@link TestProvider} checking for
- * reliable delivery, but the implementation is not fully correct. Please
- * refer to the specification of the individual protocols for correct
- * implementation.
- *
+ * reliable delivery, but the implementation is not fully correct. Please refer
+ * to the specification of the individual protocols for correct implementation.
+ * 
  * @author Lorenz Froihofer
- * @version $Id: TestProviderNonUniformReliable.java 10:a79260987421 2010/03/30 11:05:00 Lorenz Froihofer $
+ * @version $Id: TestProviderNonUniformReliable.java 10:a79260987421 2010/03/30
+ *          11:05:00 Lorenz Froihofer $
  */
 public class TestProviderNonUniformReliable implements TestProvider {
-  private static Log log = LogFactory.getLog(TestProviderNonUniformReliable.class);
+    private static Log log = LogFactory.getLog(TestProviderNonUniformReliable.class);
 
-  public List<Event> getTestData(int numProcs) {
-    return new ArrayList(Arrays.asList(new Event(0,EventType.SEND, new Message(0, 0, "Hello World!"))));
-  }
+    public List<Event> getTestData(int numProcs) {
+        List<Event> events = new ArrayList<Event>();
+        Event e = new Event(0, EventType.SEND, new Message(0, 0, "Hello World!"));
+        events.add(e);
 
-  /**
-   * Performs a simple, but faulty check of whether the protcol is reliable.
-   */
-  public boolean checkResult(ProcessSim[] processes) {
-    for (ProcessSim p : processes) {
-      if (!p.isCrashed() && (p.getDeliveredMessages().size() != 1)) {
-        if (p.getDeliveredMessages().size() > 1) {
-          log.error("Process "+p.getId()+" delivered the message more than once.");
-        }
-        else {
-          log.error("Process "+p.getId()+" did not deliver the message.");
-        }
-        return false;
-      }
+        return events;
     }
-    return true;
-  }
+
+    public boolean checkResult(ProcessSim[] processes) {
+        long delivered = -1; 
+        for (ProcessSim p : processes) {
+            if (!p.isCrashed()) {
+                int procDel = p.getDeliveredMessages().size();
+                if (delivered == -1) {
+                    delivered = procDel; 
+                } else if (delivered != procDel) {
+                    log.error("Process " + p.getId() + " delivered different count of messages");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
 }
