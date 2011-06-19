@@ -10,6 +10,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RMISocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -434,13 +435,16 @@ public class AlcatrazClient implements IClient {
 
     private void startRMIRegistry() {
         try {
+        	RMISocketFactory.setSocketFactory(new TimeoutSocketFactory(5000));
             this.registry = LocateRegistry.createRegistry(this.port);
-            //this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0);
-            this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0, new TimeoutSocketFactory(100), new TimeoutSocketFactory(100));
+            this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0);
+            //this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0, new TimeoutSocketFactory(100), new TimeoutSocketFactory(100));
             this.registry.rebind(Constants.REMOTE_CLIENT_OBJECT_NAME, this.stub);
         } catch (RemoteException e) {
             e.printStackTrace();
-        }
+        } catch (IOException e) {
+			e.printStackTrace();
+		}
 
     }
 

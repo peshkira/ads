@@ -15,13 +15,15 @@ public class TimeoutSocketFactory extends RMISocketFactory {
 	
 	@Override
 	public ServerSocket createServerSocket(int port) throws IOException {
-		return getDefaultSocketFactory().createServerSocket(port);
+		ServerSocket socket = getDefaultSocketFactory().createServerSocket(port);
+		//socket.setSoTimeout(timeout * 1000);
+		return socket;
 	}
 
 	@Override
 	public Socket createSocket(String host, int port) throws IOException {
 		Socket socket = getDefaultSocketFactory().createSocket(host, port);
-		socket.setSoTimeout(timeout * 1000);
+		//socket.setSoTimeout(timeout * 1000);
 		return socket;
 	}
 
