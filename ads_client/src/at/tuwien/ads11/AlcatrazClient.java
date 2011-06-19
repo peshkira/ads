@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import at.falb.games.alcatraz.api.Alcatraz;
+import at.falb.games.alcatraz.api.MoveListener;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.listener.ClientMoveListener;
 import at.tuwien.ads11.remote.ClientMock;
@@ -35,6 +36,7 @@ public class AlcatrazClient implements IClient {
     private static final Logger LOG = LoggerFactory.getLogger(AlcatrazClient.class);
 
     private Alcatraz alcatraz;
+    private ClientMoveListener moveListener;
 
     private IServer server;
 
@@ -137,7 +139,8 @@ public class AlcatrazClient implements IClient {
         LOG.debug("My NumId is {}", numId);
 
         this.alcatraz.init(numPlayers, numId);
-        this.alcatraz.addMoveListener(new ClientMoveListener(this));
+        this.moveListener = new ClientMoveListener(this);
+        this.alcatraz.addMoveListener(moveListener);
         this.alcatraz.start();
 
         this.synchronizer = new ClientSynchronizer(this, 5000, numId);
@@ -150,9 +153,7 @@ public class AlcatrazClient implements IClient {
     }
     
     public void stopGame() {
-    	this.synchronizer.setRun(false);
-    	this.checker.setRun(false);
-    	this.alcatraz.disposeWindow();
+    	freeResources();
     	if(hostingGame != null) {
 			try {
 				this.cancelGame(hostingGame);
@@ -213,9 +214,7 @@ public class AlcatrazClient implements IClient {
 
     public void shutdown() {
         if(runningGame) {
-        	this.synchronizer.setRun(false);
-        	this.checker.setRun(false);
-        	this.alcatraz.disposeWindow();
+        	freeResources();
         }
         try {
             UnicastRemoteObject.unexportObject(this, true);
@@ -223,6 +222,13 @@ public class AlcatrazClient implements IClient {
         } catch (NoSuchObjectException e) {
             e.printStackTrace();
         }
+    }
+    
+    private void freeResources() {
+    	this.synchronizer.setRun(false);
+    	this.checker.setRun(false);
+    	this.alcatraz.disposeWindow();
+    	this.moveListener.shutdown();
     }
 
     public void register() throws RemoteException {

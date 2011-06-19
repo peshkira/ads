@@ -62,7 +62,11 @@ public class ClientMoveListener implements MoveListener {
 //        }
 //    }
 
-    private class MovePropagator implements Runnable {
+    public void shutdown() {
+    	threadPool.shutdownNow();
+    }
+
+	private class MovePropagator implements Runnable {
 
         private IClient stub;
 
