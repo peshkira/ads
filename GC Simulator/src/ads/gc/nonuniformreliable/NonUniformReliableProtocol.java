@@ -8,6 +8,7 @@ import java.util.Set;
 
 import net.froihofer.teaching.gc.framework.api.GroupCommunication;
 import net.froihofer.teaching.gc.framework.api.Message;
+import net.froihofer.teaching.gc.framework.api.MessageGuarantee;
 import net.froihofer.teaching.gc.framework.api.Process;
 import net.froihofer.teaching.gc.framework.api.Transport;
 import net.froihofer.teaching.gc.framework.api.TransportListener;
@@ -72,6 +73,7 @@ public class NonUniformReliableProtocol implements TransportListener, GroupCommu
 
     public void multicast(Message msg) {
         try {
+            msg.setGuarantee(MessageGuarantee.RELIABLE);
             multicastOnTransport(msg);
         } catch (Exception e) {
             log.error(this.l() + "Failed to send message.", e);
