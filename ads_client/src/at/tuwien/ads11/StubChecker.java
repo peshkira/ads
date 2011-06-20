@@ -27,7 +27,6 @@ public class StubChecker extends Thread {
                         iter.remove();
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
                 }
             }
         }

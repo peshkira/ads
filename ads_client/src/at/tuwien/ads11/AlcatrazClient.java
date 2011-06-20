@@ -85,7 +85,6 @@ public class AlcatrazClient implements IClient {
         this.altProxyPort = Integer.parseInt(props.getProperty("proxy.alternative.port"));
         this.history = Collections.synchronizedList(new ArrayList<Movement>());
         this.registered = false;
-        this.alcatraz.getWindow().setTitle(this.username);
         this.cache = new HashMap<Integer, IClient>();
         this.failedPeers = Collections.synchronizedList(new ArrayList<Integer>());
     }
@@ -144,6 +143,7 @@ public class AlcatrazClient implements IClient {
 
         LOG.debug("My NumId is {}", numId);
 
+        this.alcatraz = new Alcatraz();
         this.alcatraz.init(numPlayers, numId);
         this.moveListener = new ClientMoveListener(this);
         this.alcatraz.addMoveListener(moveListener);
@@ -155,6 +155,7 @@ public class AlcatrazClient implements IClient {
         sync.start();
         this.checker.start();
 
+        this.alcatraz.getWindow().setTitle(this.username);
         this.alcatraz.showWindow();
     }
     
@@ -430,7 +431,6 @@ public class AlcatrazClient implements IClient {
             clientStub.startGame(game);
         } catch (Exception e) {
             LOG.error("ERROR {}", e.getMessage());
-            e.printStackTrace();
         }
     }
 
