@@ -1,15 +1,17 @@
 package ads.gc.fifo;
 
-import net.froihofer.teaching.gc.sim.api.ProcessSim;
-import net.froihofer.teaching.gc.sim.api.EventType;
-import net.froihofer.teaching.gc.sim.api.Event;
-import net.froihofer.teaching.gc.sim.api.TestProvider;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
-import net.froihofer.teaching.gc.framework.api.LamportTimestamp;
 import net.froihofer.teaching.gc.framework.api.Message;
+import net.froihofer.teaching.gc.sim.api.Event;
+import net.froihofer.teaching.gc.sim.api.EventType;
+import net.froihofer.teaching.gc.sim.api.ProcessSim;
+import net.froihofer.teaching.gc.sim.api.TestProvider;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -24,6 +26,8 @@ import org.apache.commons.logging.LogFactory;
  */
 public class TestProviderFifo implements TestProvider {
     private static Log log = LogFactory.getLog(TestProviderFifo.class);
+    
+    Map<Integer, List<Integer>> deliveryMap = null;
 
     public List<Event> getTestData(int numProcs) {
         List<Event> events = new ArrayList<Event>();
@@ -87,6 +91,8 @@ public class TestProviderFifo implements TestProvider {
 
             //TODO
             // check if order is correct if any messages are delivered...
+            if(!incorrectCheckForFIFOorder(fault))
+            	return false;
            
         }
 
@@ -115,16 +121,89 @@ public class TestProviderFifo implements TestProvider {
                     return false;
                 }
 
-                
                 //TODO
                 // test that all received messages are fifo within
                 // the sending process
                 // not cool but functional for this provider
+                if (deliveryMap == null)
+                	if(!initDeliveryMap(proc))
+                		return false;
+                else
+                	if(!correctCheckForFIFOorder(proc))
+                		return false;
 
             }
         }
 
         return true;
+    }
+    
+    /**
+     * Inits deliveryMap and checks if some of the delivered messages was delivered twice.
+     * @param proc
+     * @return true if everything OK, false if a msg delivered twice
+     */
+    private boolean initDeliveryMap(ProcessSim proc) {
+    	deliveryMap = new HashMap<Integer, List<Integer>>();
+    	for(Message m : proc.getDeliveredMessages()) {
+    		List<Integer> msgsForSender = deliveryMap.get(m.getSenderId());
+    		if(msgsForSender == null) {
+    			msgsForSender = new LinkedList<Integer>();
+    			msgsForSender.add(m.getId());
+    			deliveryMap.put(m.getSenderId(), msgsForSender);
+    		} else {
+    			if(msgsForSender.contains(m.getId()))
+    				return false;
+    			else
+    				msgsForSender.add(m.getId());
+    		}
+    	}
+    	return true;
+    }
+    
+    private boolean correctCheckForFIFOorder(ProcessSim proc) {
+    	Map<Integer, LinkedList<Integer>> tmpMap = cloneMap(deliveryMap);
+    	if(!checkFIFOorder(proc, tmpMap))
+    		return false;
+    	
+    	if(tmpMap.size() != 0)
+    		return false;
+    	
+    	return true;
+    }
+    
+    private boolean incorrectCheckForFIFOorder(ProcessSim proc) {
+    	Map<Integer, LinkedList<Integer>> tmpMap = cloneMap(deliveryMap);
+    	return checkFIFOorder(proc, tmpMap);
+    }
+    
+    private boolean checkFIFOorder(ProcessSim proc, Map<Integer, LinkedList<Integer>> map) {
+    	for(Message m : proc.getDeliveredMessages()) {
+    		LinkedList<Integer> tmpList = map.get(m.getSenderId());
+    		if(tmpList == null)
+    			return false;
+    		
+    		if(tmpList.getFirst().compareTo(m.getId()) == 0) {
+    			tmpList.removeFirst();
+    			if(tmpList.size() == 0)
+    				map.remove(tmpList);
+    		} else
+    			return false;
+    	}
+    	return true;
+    }
+    
+    private Map<Integer, LinkedList<Integer>> cloneMap(Map<Integer, List<Integer>> source) {
+    	Map<Integer, LinkedList<Integer>> result = new HashMap<Integer, LinkedList<Integer>>();
+    	for(Integer key : source.keySet()) {
+    		LinkedList<Integer> resultList = new LinkedList<Integer>();
+    		for(Integer i : source.get(key)) {
+    			resultList.add(i);
+    		}
+    		result.put(key, resultList);
+    	}
+    	
+    	return result;
     }
 
 }
