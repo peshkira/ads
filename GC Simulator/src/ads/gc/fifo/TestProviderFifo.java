@@ -105,6 +105,7 @@ public class TestProviderFifo implements TestProvider {
         List<Message> dMsgs = new ArrayList<Message>();
         long delivered = -1;
 
+        // Check if all correct proceesses have the same count of delivered msgs
         for (ProcessSim proc : correct) {
             long procDel = proc.getDeliveredMessages().size();
 
@@ -122,25 +123,27 @@ public class TestProviderFifo implements TestProvider {
                     log.error("Process " + proc.getId() + " does not contain all messages");
                     return false;
                 }
-
-                //TODO
-                // test that all received messages are fifo within
-                // the sending process
-                // not cool but functional for this provider
-                if (deliveryMap == null) {
-                	if(!initDeliveryMap(proc)) {
-                		log.error("Init delivery map failed");	
-                		return false;
-                	}
-                } else {
-                	if(!correctCheckForFIFOorder(proc)) {
-                		log.error("FIFO check for correct process " + proc.getId() + " failed");
-                		return false;
-                	}
-                }
             }
         }
-
+        
+        // Check the FIFO order of delivered messages
+        for (ProcessSim proc : correct) {
+        	// test that all received messages are fifo within
+        	// the sending process
+        	// not cool but functional for this provider
+        	if (deliveryMap == null) {
+        		if(!initDeliveryMap(proc)) {
+        			log.error("Init delivery map failed");	
+        			return false;
+        		}
+        	} else {
+        		if(!correctCheckForFIFOorder(proc)) {
+        			log.error("FIFO check for correct process " + proc.getId() + " failed");
+        			return false;
+        		}
+        	}
+        }
+        
         return true;
     }
     
@@ -169,11 +172,15 @@ public class TestProviderFifo implements TestProvider {
     
     private boolean correctCheckForFIFOorder(ProcessSim proc) {
     	Map<Integer, LinkedList<Integer>> tmpMap = cloneMap(deliveryMap);
-    	if(!checkFIFOorder(proc, tmpMap))
+    	if(!checkFIFOorder(proc, tmpMap)) {
+    		log.error("FIFO check failed, process: " + proc.getId());
     		return false;
+    	}
     	
-    	if(tmpMap.size() != 0)
+    	if(tmpMap.size() != 0) {
+    		log.error("Temp map after check not empty: " + tmpMap.size());
     		return false;
+    	}
     	
     	return true;
     }
@@ -191,8 +198,11 @@ public class TestProviderFifo implements TestProvider {
     		
     		if(tmpList.getFirst().compareTo(m.getId()) == 0) {
     			tmpList.removeFirst();
-    			if(tmpList.size() == 0)
-    				map.remove(tmpList);
+    			if(tmpList.size() == 0) {
+    				log.info("removing:" + map.size());
+    				map.remove(m.getSenderId());
+    				log.info("removed:" + map.size());
+    			}
     		} else
     			return false;
     	}
