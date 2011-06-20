@@ -1,4 +1,20 @@
-Atomic boradcast (reliable + total oder)
-It is not possible to implement this protocoll, because there is a need of a coordinating process like the daemon in Spread. Atomic broadcast is impossible in asynchronous networks using deterministic protocols.
+ - Atomic broadcast (reliable + total oder)
+    It is not possible to implement this protocol,
+    because there is a need of a coordinating process
+    like the daemon in Spread. Atomic broadcast is impossible
+    in asynchronous networks using deterministic protocols.
 
- 
+ - Causal
+Basically, we implemented the protocol but didn't have time to write
+a test to prove correctness. It is implemented in the following way.
+
+There is a vector clock object which has a reference to a lamport timestamp for each
+process. Upon broadcast the timestamp of the sending process in the vector clock is 
+incremented and the senders vector clock is appended to the message.
+Upon receive the process checks whether this message is already received
+and if not multicasts the message to all processes (controlled flooding because of uniformity).
+If the multicast was successful the process checks if the message can be delivered by comparing its
+clock to the one appended in the message. If the clock has only one difference meaning there are no
+causal messages missing, than the message is delivered, otherwise it is buffered.
+After each delivered message, the buffer is checked, whether the pending messages can now be delivered.
+If yes, there are delivered, otherwise the process continues.
