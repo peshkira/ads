@@ -91,8 +91,10 @@ public class TestProviderFifo implements TestProvider {
 
             //TODO
             // check if order is correct if any messages are delivered...
-            if(!incorrectCheckForFIFOorder(fault))
+            if(!incorrectCheckForFIFOorder(fault)) {
+            	log.error("FIFO check for incorrect process " + fault.getId() + " failed");
             	return false;
+            }
            
         }
 
@@ -125,13 +127,17 @@ public class TestProviderFifo implements TestProvider {
                 // test that all received messages are fifo within
                 // the sending process
                 // not cool but functional for this provider
-                if (deliveryMap == null)
-                	if(!initDeliveryMap(proc))
+                if (deliveryMap == null) {
+                	if(!initDeliveryMap(proc)) {
+                		log.error("Init delivery map failed");	
                 		return false;
-                else
-                	if(!correctCheckForFIFOorder(proc))
+                	}
+                } else {
+                	if(!correctCheckForFIFOorder(proc)) {
+                		log.error("FIFO check for correct process " + proc.getId() + " failed");
                 		return false;
-
+                	}
+                }
             }
         }
 
