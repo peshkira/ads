@@ -1,7 +1,9 @@
 package ads.gc.uniformreliable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.froihofer.teaching.gc.framework.api.Message;
 import net.froihofer.teaching.gc.sim.api.Event;
@@ -86,7 +88,10 @@ public class TestProviderUniformReliable implements TestProvider {
 
         
         for (ProcessSim fault : faulty) {
-            for (ProcessSim corr : correct) {
+        	if(!checkForDuplicateMessages(fault.getDeliveredMessages()))
+            	return false;
+        	
+        	for (ProcessSim corr : correct) {
                 if (fault.getDeliveredMessages().size() > corr.getDeliveredMessages().size()) {
                     log.error("Process " + fault.getId() + " has delivered more messages than the correct processes");
                     return false;
@@ -119,7 +124,10 @@ public class TestProviderUniformReliable implements TestProvider {
 
         for (ProcessSim proc : correct) {
             long procDel = proc.getDeliveredMessages().size();
-
+            
+            if(!checkForDuplicateMessages(proc.getDeliveredMessages()))
+            	return false;
+            
             if (delivered == -1) {
                 delivered = procDel;
                 dMsgs = proc.getDeliveredMessages();
@@ -138,6 +146,13 @@ public class TestProviderUniformReliable implements TestProvider {
         }
 
         return true;
+    }
+    
+    private boolean checkForDuplicateMessages(List<Message> msgs) {
+    	Set<Message> msgSet = new HashSet<Message>(msgs);
+    	if(msgSet.size() != msgSet.size())
+    		return false;
+    	return true;
     }
 
 }

@@ -1,7 +1,9 @@
 package ads.gc.nonuniformreliable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.froihofer.teaching.gc.framework.api.Message;
 import net.froihofer.teaching.gc.sim.api.Event;
@@ -33,14 +35,18 @@ public class TestProviderNonUniformReliable implements TestProvider {
         return events;
     }
 
-    //TODO check if there is a message is delivered more than once.
+    // check if there is a message is delivered more than once.
     // be careful not to check that there is exactly 1 message
     // there can be none and the protocol is still correct
     // if no one has received it...
     public boolean checkResult(ProcessSim[] processes) {
         long delivered = -1;
         for (ProcessSim p : processes) {
-            if (!p.isCrashed()) {
+            Set<Message> msgSet = new HashSet<Message>(p.getDeliveredMessages());
+            if(msgSet.size() != p.getDeliveredMessages().size())
+            	return false;
+            
+        	if (!p.isCrashed()) {
                 int procDel = p.getDeliveredMessages().size();
                 if (delivered == -1) {
                     delivered = procDel;
