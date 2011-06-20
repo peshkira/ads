@@ -24,25 +24,26 @@ public class TestProviderCausal implements TestProvider {
   private static Log log = LogFactory.getLog(TestProviderCausal.class);
 
   public List<Event> getTestData(int numProcs) {
-    return new ArrayList(Arrays.asList(new Event(0,EventType.SEND, new Message(0, 0, "Hello World!"))));
+      List<Event> events = new ArrayList<Event>();
+
+      if (numProcs > 2) {
+          Event e1 = new Event(0, EventType.SEND, new Message(0, 0, "Some Message"));
+          Event e2 = new Event(0, EventType.SEND, new Message(1, 0, "Hello"));
+          events.add(e1);
+          events.add(e2);
+
+          Event e4 = new Event(1, EventType.SEND, new Message(0, 1, "Other Message"));
+          Event e5 = new Event(1, EventType.SEND, new Message(1, 1, "World"));
+          events.add(e4);
+          events.add(e5);
+      }
+
+      return events;
   }
 
-  /**
-   * Performs a simple, but faulty check of whether the protcol is reliable.
-   */
   public boolean checkResult(ProcessSim[] processes) {
-    for (ProcessSim p : processes) {
-      if (!p.isCrashed() && (p.getDeliveredMessages().size() != 1)) {
-        if (p.getDeliveredMessages().size() > 1) {
-          log.error("Process "+p.getId()+" delivered the message more than once.");
-        }
-        else {
-          log.error("Process "+p.getId()+" did not deliver the message.");
-        }
-        return false;
-      }
-    }
-    return true;
+      log.error("Not Implemented!");
+    return false;
   }
 
 }
