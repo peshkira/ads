@@ -228,6 +228,8 @@ public class AlcatrazClient implements IClient {
         } catch (NoSuchObjectException e) {
             e.printStackTrace();
         }
+        // After all resources free, force termination.
+        System.exit(0);
     }
     
     private void freeResources() {
@@ -439,7 +441,7 @@ public class AlcatrazClient implements IClient {
 
     private void startRMIRegistry() {
         try {
-        	RMISocketFactory.setSocketFactory(new TimeoutSocketFactory(5000));
+        	RMISocketFactory.setSocketFactory(new TimeoutSocketFactory(5));
             this.registry = LocateRegistry.createRegistry(this.port);
             this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0);
             //this.stub = (IClient) UnicastRemoteObject.exportObject(this, 0, new TimeoutSocketFactory(100), new TimeoutSocketFactory(100));

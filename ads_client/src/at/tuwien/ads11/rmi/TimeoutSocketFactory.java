@@ -23,7 +23,7 @@ public class TimeoutSocketFactory extends RMISocketFactory {
 	@Override
 	public Socket createSocket(String host, int port) throws IOException {
 		Socket socket = getDefaultSocketFactory().createSocket(host, port);
-		//socket.setSoTimeout(timeout * 1000);
+		socket.setSoTimeout(timeout * 1000);
 		return socket;
 	}
 
