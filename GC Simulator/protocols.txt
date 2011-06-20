@@ -1,0 +1,4 @@
+Atomic boradcast (reliable + total oder)
+It is not possible to implement this protocoll, because there is a need of a coordinating process like the daemon in Spread. Atomic broadcast is impossible in asynchronous networks using deterministic protocols.
+
+ 
