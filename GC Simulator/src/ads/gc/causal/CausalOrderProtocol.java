@@ -2,17 +2,22 @@ package ads.gc.causal;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.froihofer.teaching.gc.framework.api.GroupCommunication;
 import net.froihofer.teaching.gc.framework.api.LamportTimestamp;
+import net.froihofer.teaching.gc.framework.api.Message;
 import net.froihofer.teaching.gc.framework.api.MessageGuarantee;
 import net.froihofer.teaching.gc.framework.api.Process;
 import net.froihofer.teaching.gc.framework.api.Transport;
 import net.froihofer.teaching.gc.framework.api.TransportListener;
-import net.froihofer.teaching.gc.framework.api.Message;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -35,6 +40,7 @@ public class CausalOrderProtocol implements TransportListener, GroupCommunicatio
   private VectorClock clock;
 
   private Set<MessageMock> received;
+  private Map<Integer, List<Message<VectorClock>>> buffer;
 
   public void receiveFrom(Serializable data, int senderProcessId) {
       log.debug(this.l() + "received message from proc: " + senderProcessId);
@@ -73,6 +79,11 @@ public class CausalOrderProtocol implements TransportListener, GroupCommunicatio
       this.processIds = processIds;
       this.received = Collections.synchronizedSet(new HashSet<MessageMock>());
       this.clock = new VectorClock(processIds);
+      
+      this.buffer = Collections.synchronizedMap(new HashMap<Integer, List<Message<VectorClock>>>());
+      for (int p : processIds) {
+          this.buffer.put(p, Collections.synchronizedList(new ArrayList<Message<VectorClock>>()));
+      }
   }
 
   public void multicast(Message msg) {

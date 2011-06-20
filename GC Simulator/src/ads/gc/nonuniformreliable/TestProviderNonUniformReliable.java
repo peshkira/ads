@@ -33,7 +33,7 @@ public class TestProviderNonUniformReliable implements TestProvider {
         return events;
     }
 
-    //TODO check if there a message is delivered more than once.
+    //TODO check if there is a message is delivered more than once.
     // be careful not to check that there is exactly 1 message
     // there can be none and the protocol is still correct
     // if no one has received it...

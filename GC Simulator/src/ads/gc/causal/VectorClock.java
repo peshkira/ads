@@ -31,4 +31,8 @@ public class VectorClock {
     public LamportTimestamp[] getTimestamps() {
         return timestamps;
     }
+    
+    public boolean compare(VectorClock other) {
+        return false; //TODO
+    }
 }
