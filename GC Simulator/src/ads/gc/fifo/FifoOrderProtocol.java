@@ -101,8 +101,7 @@ public class FifoOrderProtocol implements TransportListener, GroupCommunication 
         msg.setGuarantee(MessageGuarantee.FIFO);
         
         if (msg.getOrderMechanism() == null) {
-            this.timestamp.next();
-            msg.setOrderMechanism(this.timestamp);
+            msg.setOrderMechanism(this.timestamp.next());
         }
         
         multicastOnTransport(msg);

@@ -33,6 +33,10 @@ public class TestProviderNonUniformReliable implements TestProvider {
         return events;
     }
 
+    //TODO check if there a message is delivered more than once.
+    // be careful not to check that there is exactly 1 message
+    // there can be none and the protocol is still correct
+    // if no one has received it...
     public boolean checkResult(ProcessSim[] processes) {
         long delivered = -1;
         for (ProcessSim p : processes) {
