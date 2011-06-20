@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import at.falb.games.alcatraz.api.Alcatraz;
-import at.falb.games.alcatraz.api.MoveListener;
 import at.tuwien.ads11.common.Constants;
 import at.tuwien.ads11.listener.ClientMoveListener;
 import at.tuwien.ads11.remote.ClientMock;
@@ -46,9 +45,11 @@ public class AlcatrazClient implements IClient {
     private String password;
     private String ip;
     private String proxyIp;
+    private String altProxyIp;
 
     private int port;
     private int proxyPort;
+    private int altProxyPort;
 
     private List<ClientMock> clients;
     private List<Integer> failedPeers;
@@ -71,6 +72,7 @@ public class AlcatrazClient implements IClient {
 
     private StubChecker checker;
 
+
     public AlcatrazClient(Properties props) {
         this.alcatraz = new Alcatraz();
         this.username = props.getProperty("client.username");
@@ -79,6 +81,8 @@ public class AlcatrazClient implements IClient {
         this.port = Integer.parseInt(props.getProperty("client.port"));
         this.proxyIp = props.getProperty("proxy.ip");
         this.proxyPort = Integer.parseInt(props.getProperty("proxy.port"));
+        this.altProxyIp = props.getProperty("proxy.alternative.ip");
+        this.altProxyPort = Integer.parseInt(props.getProperty("proxy.alternative.port"));
         this.history = Collections.synchronizedList(new ArrayList<Movement>());
         this.registered = false;
         this.alcatraz.getWindow().setTitle(this.username);
@@ -452,12 +456,19 @@ public class AlcatrazClient implements IClient {
         try {
             this.server = (IServer) Naming.lookup("rmi://" + this.proxyIp + ":" + this.proxyPort + "/"
                     + Constants.REMOTE_SERVER_OBJECT_NAME);
-        } catch (MalformedURLException e) {
-            LOG.error("An error occurred, the server uri seem to be malformed. Cause: {}", e.getMessage());
-        } catch (RemoteException e) {
+        } catch (Exception e) {
             LOG.error("An error occurred, the server seems to be unreachable. Cause: {}", e.getMessage());
-        } catch (NotBoundException e) {
+            this.getAlternativeProxy();
+        }
+    }
+    
+    private void getAlternativeProxy() {
+        try {
+            this.server = (IServer) Naming.lookup("rmi://" + this.altProxyIp + ":" + this.altProxyPort + "/"
+                    + Constants.REMOTE_SERVER_OBJECT_NAME);
+        } catch (Exception e) {
             LOG.error("An error occurred, the server seems to be unreachable. Cause: {}", e.getMessage());
+            
         }
     }
 
